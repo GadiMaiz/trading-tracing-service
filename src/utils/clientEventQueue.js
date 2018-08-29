@@ -17,4 +17,4 @@ class ClientEventQueue {
 
 let clientEventQueue = new ClientEventQueue();
 
-module.exports = clientEventQueue;
+export default clientEventQueue;

@@ -1,6 +1,8 @@
 
 const ExchangeHandlers = {
-    'bitstamp' : './Bitstamp/bitstampHandler',
+    bitstamp : './bitstamp/bitstampHandler',
 };
 
-module.exports = ExchangeHandlers;
+// module.exports =  ExchangeHandlers;
+
+export default ExchangeHandlers;

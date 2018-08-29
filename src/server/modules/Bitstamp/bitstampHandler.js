@@ -1,14 +1,13 @@
-let Bitstamp = require('../../ThirdParty/bitstamp/Bitstamp');
+import Bitstamp from 'Bitstamp';
 
-let BitstampOrderTracer = require('./bitstampOrderTracer');
+import BitstampOrderTracer from './bitstampOrderTracer';
 
 import logger from 'logger';
 
+// global const shell be moved to configuration
+const BITSTAMP_REQUEST_TIMEOUT = 5000;
 // /// global currency pairs
 const BTC_USD = 'btcusd';
-// //// global parameters
-const NUM_OF_TRANSACTIONS_FOR_VALIDATIONS = 5;
-// /////////////////////
 
 class BitstampHandler {
     //  TODO GADI  we should call get user data here and save the user current amount of each coin.
@@ -16,10 +15,10 @@ class BitstampHandler {
 
     constructor(props) {
         this.bitstampConnector = new Bitstamp({
-            key : props.key,
-            secret : props.secret,
-            clientId : props.clientId,
-            timeout: 5000,
+            key: props.key,
+            secret: props.secret,
+            clientId: props.clientId,
+            timeout: BITSTAMP_REQUEST_TIMEOUT,
             rateLimit: true // turned on by default
         });
         this.bitstampOrderTracer = new BitstampOrderTracer(this.bitstampConnector);
@@ -30,64 +29,71 @@ class BitstampHandler {
     }
 
     buyImmediateOrCancel(params) {
-        let currency = (params.currency == null) ? BTC_USD : params.currency;
+        const currency = (!params.currency) ? BTC_USD : params.currency;
 
         return new Promise(function (resolve, reject) {
             this.bitstampConnector.buyLimitOrder(params.amount, params.price, currency, null, null, true).then((result) => {
-                let transactionId = result.body.id;
+                if (!result) {
+                    return reject({ status: 'failed', reason: 'buy immediate or cancel order request failed' });
+                }
+                const transactionId = result.body.id;
 
                 this.bitstampOrderTracer.addNewTransaction({
-                    'bitstampOrderId': transactionId,
-                    'amount': result.body.amount,
-                    'price': result.body.price,
-                    'type': 'sell',
-                    'bitmainId': null
+                    bitstampOrderId: transactionId,
+                    amount: result.body.amount,
+                    price: result.body.price,
+                    type: 'sell',
+                    bitmainId: null
                 });
-                resolve({ status :'order sent', orderId : transactionId });
+                resolve({ status: 'order sent', orderId: transactionId });
             }).catch((err) => { return reject(err); });
         }.bind(this));
     }
 
 
     sellImmediateOrCancel(params) {
-        let currency = (params.currency == null) || (params.currency == undefined) ? BTC_USD : params.currency;
+        const currency = (params.currency == null) || (params.currency == undefined) ? BTC_USD : params.currency;
         return new Promise(function (resolve, reject) {
             this.bitstampConnector.sellLimitOrder(params.amount, params.price, currency, null, null, true).then((result) => {
-                let transactionId = result.body.id;
+                if (!result) {
+                    return reject({ status: 'failed', reason: 'sell immediate or cancel order request failed' });
+                }
+                const transactionId = result.body.id;
 
                 logger.debug('transactionId - ' + transactionId + 'is about to be inserted to queue');
 
                 // / will be moved to function
                 this.bitstampOrderTracer.addNewTransaction({
-                    'bitstampOrderId': transactionId,
-                    'amount': result.body.amount,
-                    'price': result.body.price,
-                    'type': 'sell',
-                    'bitmainId': null
+                    bitstampOrderId: transactionId,
+                    amount: result.body.amount,
+                    price: result.body.price,
+                    type: 'sell',
+                    bitmainId: null
                 });
-                resolve({ status :'order sent', orderId : transactionId });
+                resolve({ status: 'order sent', orderId: transactionId });
             }).catch((err) => { return reject(err); });
         }.bind(this));
     }
 
 
     sellLimit(params) {
-        let currency = (params.currency == null) || (params.currency == undefined) ? BTC_USD : params.currency;
+        const currency = (params.currency == null) || (params.currency == undefined) ? BTC_USD : params.currency;
         return new Promise(function (resolve, reject) {
             this.bitstampConnector.sellLimitOrder(params.amount, params.price, currency, params.limitPrice, null).then((result) => {
-                let transactionId = result.body.id;
-                let sold_amount = result.body.amount;
-                let sold_price = result.body.price;
+                if (!result) {
+                    return reject({ status: 'failed', reason: 'sell Limit order request failed' });
+                }
+                const transactionId = result.body.id;
 
                 this.bitstampOrderTracer.addNewTransaction({
-                    'bitstampOrderId': transactionId,
-                    'amount': result.body.amount,
-                    'price': result.body.price,
-                    'type': 'sell',
-                    'bitmainId': null
+                    bitstampOrderId: transactionId,
+                    amount: result.body.amount,
+                    price: result.body.price,
+                    type: 'sell',
+                    bitmainId: null
                 });
 
-                resolve({ status :'order sent', orderId : transactionId });
+                resolve({ status: 'order sent', orderId: transactionId });
 
             }).catch((err) => {
                 return reject(err);
@@ -96,19 +102,22 @@ class BitstampHandler {
     }
 
     buyLimit(params) {
-        let currency = (params.currency == null) || (params.currency == undefined) ? BTC_USD : params.currency;
+        const currency = (params.currency == null) || (params.currency == undefined) ? BTC_USD : params.currency;
         return new Promise(function (resolve, reject) {
             this.bitstampConnector.buyLimitOrder(params.amount, params.price, currency, params.limitPrice, null).then((result) => {
-                let transactionId = result.body.id;
+                if (!result) {
+                    return reject({ status: 'failed', reason: 'buy Limit order request failed' });
+                }
+                const transactionId = result.body.id;
 
                 this.bitstampOrderTracer.addNewTransaction({
-                    'bitstampOrderId': transactionId,
-                    'amount': result.body.amount,
-                    'price': result.body.price,
-                    'type': 'sell',
-                    'bitmainId': null
+                    bitstampOrderId: transactionId,
+                    amount: result.body.amount,
+                    price: result.body.price,
+                    type: 'sell',
+                    bitmainId: null
                 });
-                resolve({ status :'order sent', orderId : transactionId }); return resolve('order sent');
+                resolve({ status: 'order sent', orderId: transactionId });
             }).catch((err) => { return reject(err); });
         }.bind(this));
     }

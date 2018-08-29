@@ -181,6 +181,6 @@ class STLogger {
 
 /*   winston log levels are: silly, debug, verbose, info, warn, error   */
 
-let log = new STLogger();
+const log = new STLogger();
 
 module.exports = log;

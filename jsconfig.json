@@ -14,6 +14,15 @@
             "logger": [
                 "./src/utils/logger"
             ],
+            "handlerDeligator": [
+                "./src/server/modules/handlerDeligator"
+            ],
+            "Bitstamp": [
+                "./src/server/thirdParty/bitstamp/Bitstamp"
+            ],
+            "TickerStream": [
+                "./src/server/thirdParty/bitstamp/streams/TickerStream"
+            ]
         }
     },
     "exclude": [

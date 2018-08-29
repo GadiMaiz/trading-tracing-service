@@ -1,23 +1,17 @@
-const createError = require('http-errors');
-const express = require('express');
-const path = require('path');
-const indexRouter = require('./routes');
-const usersRouter = require('./routes/users');
-const requestRouter = require('./routes/requests');
+import createError from 'http-errors';
+import express from 'express';
+import indexRouter from './routes';
+import usersRouter from './routes/users';
+import requestRouter from './routes/requests';
 
 const server = express();
 
-// view engine setup
-server.set('views', path.join(__dirname, 'views'));
-server.set('view engine', 'jade');
 
 server.use(express.json());
-server.use(express.urlencoded({ extended: false }));
-server.use(express.static(path.join(__dirname, 'public')));
 
-server.use('/requests', requestRouter);
 server.use('/', indexRouter);
 server.use('/users', usersRouter);
+server.use('/requests', requestRouter);
 
 // catch 404 and forward to error handler
 server.use(function(req, res, next) {
