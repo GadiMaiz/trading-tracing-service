@@ -22,6 +22,9 @@
             ],
             "TickerStream": [
                 "./src/server/thirdParty/bitstamp/streams/TickerStream"
+            ],
+            "status" : [
+                "./src/utils/status"
             ]
         }
     },

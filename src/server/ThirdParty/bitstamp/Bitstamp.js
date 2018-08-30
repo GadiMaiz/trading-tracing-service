@@ -121,14 +121,12 @@ class Bitstamp {
                 // There was an API request error.
                 // e.g. Insufficient funds in case of withdrawal.
                 if (body.status === 'error') {
-                    console.log('ERROR : ' + body.reason );
                     return reject(body.reason);
                 }
 
                 // Typically this happens when the request's statuscode
                 // is not 2xx but we check here just in case.
                 if (body.error) {
-                    console.log('ERROR : ' + body.reason );
                     return reject(new Error(body.error));
                 }
                 resolve({
