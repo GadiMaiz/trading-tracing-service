@@ -4,7 +4,7 @@ import BitstampOrderTracer from './bitstampOrderTracer';
 
 import logger from 'logger';
 
-import { Status, returnMessages } from 'status';
+import { returnMessages } from 'status';
 
 // global const shell be moved to configuration
 const BITSTAMP_REQUEST_TIMEOUT = 5000;
@@ -102,9 +102,10 @@ class BitstampHandler {
         }
 
         if (!result) {
-            throw new ERROR('request to bitstamp failed');
+            throw { status: returnMessages.OrderSent, message: 'request to bitstamp failed' };
         }
         const transactionId = result.body.id;
+        logger.debug(type + ' order ' + transactionId + ' was sent to the exchange, about to insert the order to tracing list');
 
         await this.bitstampOrderTracer.addNewTransaction({
             bitstampOrderId: transactionId,
@@ -126,6 +127,9 @@ let bitstampHandler;
  */
 const getInstance = (parameters) => {
     if (!bitstampHandler) {
+        if (!parameters) {
+            throw { status: returnMessages.Error, message: returnMessages.NotLoggedIn };
+        }
         bitstampHandler = new BitstampHandler(parameters);
     }
     return bitstampHandler;

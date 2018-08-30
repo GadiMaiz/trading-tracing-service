@@ -1,5 +1,7 @@
 import express from 'express';
 import Handler from 'handlerDeligator';
+import { returnMessages } from 'status';
+import logger from 'logger';
 
 const handler = new Handler();
 const router = express.Router();
@@ -10,12 +12,13 @@ router.post('/login', async (req, res, next) => {
     const key = req.body.key;
     const secret = req.body.secret;
     const clientId = req.body.clientId;
-    
+
     try {
-        const ret = await handler.login(exchange,{ key, secret, clientId });
+        const ret = await handler.login(exchange, { key, secret, clientId });
         res.json(ret);
     }
     catch (err) {
+        logger.err(err);
         res.statusCode = 400;
         res.json(err);
     }
@@ -27,6 +30,7 @@ router.get('/getUserData', async (req, res, next) => {
         res.json(userData);
     }
     catch (err) {
+        logger.err(err);
         res.statusCode = 400;
         res.json(err);
     }
@@ -35,14 +39,18 @@ router.get('/getUserData', async (req, res, next) => {
 router.post('/buyImmediateOrCancel', async (req, res, next) => {
     const amount = req.body.amount;
     const price = req.body.price;
-    if (!amount || !price) {
-        return next(new Error('ERROR input parameters are missing'));
+    if (!amount || !price || !req.body.exchange) {
+        let err = new Error(returnMessages.InputParametersMissing);
+        err.status = 400;
+        return next(err);
     }
+    const exchange = req.body.exchange.toLowerCase();
     try {
-        const status = await handler.buyImmediateOrCancel('bitstamp', { amount: amount, price: price });
+        const status = await handler.buyImmediateOrCancel(exchange, { amount: amount, price: price });
         res.json(status);
     }
     catch (err) {
+        logger.err(err);
         res.statusCode = 400;
         res.json(err);
     }
@@ -52,14 +60,18 @@ router.post('/buyImmediateOrCancel', async (req, res, next) => {
 router.post('/sellImmediateOrCancel', async (req, res, next) => {
     const amount = req.body.amount;
     const price = req.body.price;
-    if (!amount || !price) {
-        return next(new Error('ERROR input Params'));
+    if (!amount || !price || !req.body.exchange) {
+        let err = new Error(returnMessages.InputParametersMissing);
+        err.status = 400;
+        return next(err);
     }
+    const exchange = req.body.exchange.toLowerCase();
     try {
-        const status = await handler.sellImmediateOrCancel('bitstamp', { amount: amount, price: price })
+        const status = await handler.sellImmediateOrCancel(exchange, { amount: amount, price: price });
         res.json(status);
     }
     catch (err) {
+        logger.err(err);
         res.statusCode = 400;
         res.json(err);
     }
@@ -68,16 +80,18 @@ router.post('/sellImmediateOrCancel', async (req, res, next) => {
 router.post('/sellLimit', async (req, res, next) => {
     const amount = req.body.amount;
     const price = req.body.limitPrice;
-
-    if (!amount || !price) {
-        return next(new Error('ERROR input Params'));
+    if (!amount || !price || !req.body.exchange) {
+        let err = new Error(returnMessages.InputParametersMissing);
+        err.status = 400;
+        return next(err);
     }
-
+    const exchange = req.body.exchange.toLowerCase();
     try {
-        const status = await handler.sellLimit('bitstamp', { amount: amount, price: price });
+        const status = await handler.sellLimit(exchange, { amount: amount, price: price });
         res.json(status);
     }
     catch (err) {
+        logger.err(err);
         res.statusCode = 400;
         res.json(err);
     }
@@ -87,15 +101,18 @@ router.post('/buyLimit', async (req, res, next) => {
     const amount = req.body.amount;
     const price = req.body.limitPrice;
 
-    if (!amount || !price) {
-        return next(new Error('ERROR input Params'));
+    if (!amount || !price || !req.body.exchange) {
+        let err = new Error(returnMessages.InputParametersMissing);
+        err.status = 400;
+        return next(err);
     }
-
+    const exchange = req.body.exchange.toLowerCase();
     try {
-        const status = await handler.handler.buyLimit('bitstamp', { amount: amount, price: price })
+        const status = await handler.handler.buyLimit(exchange, { amount: amount, price: price });
         res.json(status);
     }
     catch (err) {
+        logger.err(err);
         res.statusCode = 400;
         res.json(err);
     }

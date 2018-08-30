@@ -9,7 +9,7 @@ class BitstampOrderTracer {
 
     /**
      * as part of the construction we initialize the ticker stream listener, and run periodic task that monitor old orders status
-     * @param {object} bitstampHandler - bitstamp handler  
+     * @param {object} bitstampHandler - bitstamp handler
      */
     constructor(bitstampHandler) {
         // data members
@@ -90,13 +90,12 @@ class BitstampOrderTracer {
 
     /**
      * inserts a transaction into tracing list
-     * @param {object} transactionDetails 
-     * 
-     * @param {string} bitstampOrderId - the order id that Bistamp generated for the current order
-     * @param {string} amount - (double as string) how many coins should be bought
-     * @param {string} price - (double as string) the price per single coin
-     * @param {string} type  - buy / sell depends on the request
-     * @param {string} bitmainId - the internal request id was generated upon user request
+     * @param {object} transactionDetails
+     * @param {string} transactionDetails.bitstampOrderId - the order id that Bistamp generated for the current order
+     * @param {string} transactionDetails.amount - (double as string) how many coins should be bought
+     * @param {string} transactionDetails.price - (double as string) the price per single coin
+     * @param {string} transactionDetails.type  - buy / sell depends on the request
+     * @param {string} transactionDetails.bitmainId - the internal request id was generated upon user request
      */
     addNewTransaction(transactionDetails) {
         const date = new Date();

@@ -3,6 +3,7 @@ import express from 'express';
 import indexRouter from './routes';
 import usersRouter from './routes/users';
 import requestRouter from './routes/requests';
+import logger from 'logger';
 
 const server = express();
 
@@ -21,12 +22,15 @@ server.use(function(req, res, next) {
 // error handler
 server.use(function(err, req, res, next) {
     // set locals, only providing error in development
+    logger.err(err.message);
     res.locals.message = err.message;
-    res.locals.error = req.server.get('env') === 'development' ? err : {};
+    res.locals.error = server.get('env') === 'development' ? err : {};
 
     // render the error page
     res.status(err.status || 500);
-    res.render('error');
+    res.end(err.message);
 });
 
 export default server;
+
+
