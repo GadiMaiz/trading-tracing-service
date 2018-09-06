@@ -1,7 +1,7 @@
 
 export const Status = {
-    Success: 0,
-    Error: 1
+    Success:  0,
+    Error:    1
 };
 
 export const returnMessages = {

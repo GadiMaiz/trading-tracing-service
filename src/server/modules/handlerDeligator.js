@@ -1,8 +1,7 @@
 
 import Exchanges from './exchanges.js';
-import { returnMessages } from 'status';
 
-class HandlerDeligartor {
+class HandlerDeligator {
 
     // initializalize all handlers
     constructor() {
@@ -69,4 +68,4 @@ class HandlerDeligartor {
     }
 }
 
-export default HandlerDeligartor;
+export default HandlerDeligator;
