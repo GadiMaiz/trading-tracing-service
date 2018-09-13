@@ -6,13 +6,14 @@ import logger from 'logger';
 
 import { Status, returnMessages } from 'status';
 
+import Currency from './currencyPairs';
+
 // global const shell be moved to configuration
 const BITSTAMP_REQUEST_TIMEOUT = 5000;
 
 const OLD_LIMIT = 5000;
 const PERIOD_TO_CHECK = 1500;
 // /// global currency pairs
-const BTC_USD = 'btcusd';
 
 class BitstampHandler {
 
@@ -41,7 +42,6 @@ class BitstampHandler {
             this.bitstampOrderTracer = bitstampOrderTracer;
         }
         else {
-            console.log('bitstampWrapper = ' + bitstampWrapper + ' bitstampOrderTracer = ' + bitstampOrderTracer);
             throw new Error('could not construct BitstampHandler, input parameters are not valid');
         }
     }
@@ -50,7 +50,7 @@ class BitstampHandler {
      * the function returnes user data returned from the client
      */
     async getUserAccountData() {
-        logger.debug('about to send get user data request');
+        logger.debug('about to send get user data request to bitstamp');
         const ret = await this.bitstampWrapper.balance();
         return ret.body;
     }
@@ -61,10 +61,10 @@ class BitstampHandler {
      * @param {object} params
      * @param {string} params.amount - (double as string) how many coins should be sold
      * @param {string} params.price -  (double as string) the price per single coin
-     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC_USD pair will be chosen
+     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC- USD pair will be chosen
      */
     async buyImmediateOrCancel(params) {
-        const currency = (!params.currency) ? BTC_USD : params.currency;
+        const currency = (!params.currency) ? Currency.btcUsd : params.currency;
         logger.debug('sending buy immediate or cancel order request');
         return await this.sendOrder('buy', { amount: params.amount, price: params.price, currency: currency, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true });
     }
@@ -75,10 +75,10 @@ class BitstampHandler {
      * @param {object} params
      * @param {string} params.amount - (double as string) how many coins should be bought
      * @param {string} params.price -  (double as string) the price per single coin
-     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC_USD pair will be chosen
+     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
      */
     async sellImmediateOrCancel(params) {
-        const currency = (!params.currency) ? BTC_USD : params.currency;
+        const currency = (!params.currency) ? Currency.btcUsd : params.currency;
         logger.debug('sending sell immediate or cancel order request');
         return await this.sendOrder('sell', { amount: params.amount, price: params.price, currency: currency, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true });
     }
@@ -88,10 +88,10 @@ class BitstampHandler {
      * @param {object} params
      * @param {string} params.amount - (double as string) how many coins should be sold
      * @param {string} params.price -  (double as string) the price per single coin
-     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC_USD pair will be chosen
+     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
      */
     async sellLimit(params) {
-        const currency = (!params.currency) ? BTC_USD : params.currency;
+        const currency = (!params.currency) ? Currency.btcUsd : params.currency;
         logger.debug('sending sell limit order request');
         return await this.sendOrder('sell', { amount: params.amount, price: params.price, currency: currency, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null });
     }
@@ -102,10 +102,10 @@ class BitstampHandler {
      * @param {object} params
      * @param {string} params.amount - (double as string) how many coins should be bought
      * @param {string} params.price -  (double as string) the price per single coin
-     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC_USD pair will be chosen
+     * @param {string} params.currency - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
      */
     buyLimit(params) {
-        const currency = (!params.currency) ? BTC_USD : params.currency;
+        const currency = (!params.currency) ? Currency.btcUsd : params.currency;
         logger.debug('sending buy limit order request');
         return this.sendOrder('buy', { amount: params.amount, price: params.price, currency: currency, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null });
     }

@@ -24,9 +24,16 @@ router.post('/login', async (req, res, next) => {
     }
 });
 
-router.get('/getUserData', async (req, res, next) => {
+
+router.post('/getUserData', async (req, res, next) => { 
+    if (!req.body.exchange) { 
+        let err = new Error(returnMessages.InputParametersMissing);
+        err.status = 400;
+        return next(err);
+    }
+    const exchange = req.body.exchange.toLowerCase();
     try {
-        const userData = await handler.getUserAccountData('bitstamp');
+        const userData = await handler.getUserAccountData(exchange);
         res.json(userData);
     }
     catch (err) {
@@ -35,6 +42,7 @@ router.get('/getUserData', async (req, res, next) => {
         res.json(err);
     }
 });
+
 
 router.post('/buyImmediateOrCancel', async (req, res, next) => {
     const amount = req.body.amount;

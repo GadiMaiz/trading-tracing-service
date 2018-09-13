@@ -1,7 +1,8 @@
 import TickerStream from 'TickerStream';
 
 import logger from 'logger';
-import { Status } from 'status';
+import { Status, returnMessages } from 'status';
+import Currency from './currencyPairs';
 
 
 class BitstampOrderTracer {
@@ -63,20 +64,20 @@ class BitstampOrderTracer {
 
     // the function checks the status of all orders that were updated < oldLimit
     async periodicStatusChecker() {
-
         let found = false;
         let userOrders = null;
         const date = new Date();
         const currentTime = date.getTime();
         for (const bitstampOrderId in this.openOrders) {
-            if (currentTime - this.openOrders[bitstampOrderId]['updateTime'] > this.oldLimit) {
+            if (currentTime - this.openOrders[bitstampOrderId]['updateTime'] >= this.oldLimit) {
                 if (found === false) {
                     try {
-                        userOrders = await this.bitstampWrapper.openOrders('btcusd');
+                        found = true;
+                        userOrders = await this.bitstampWrapper.openOrdersAll();
                     }
                     catch (err) {
                         logger.err('Error requesting open orders ' + err);
-                        return;
+                        return this.openOrders;
                     }
                 }
                 let orderFound = false;
@@ -92,7 +93,7 @@ class BitstampOrderTracer {
                     const result = await this.bitstampWrapper.orderStatus(bitstampOrderId);
                     if (!result) {
                         logger.err('order status request of order ' + bitstampOrderId + ' has failed');
-                        await delete this.openOrders[bitstampOrderId];
+                        delete this.openOrders[bitstampOrderId];
                     }
                     if (result.body.status === 'Open' || result.body.status === 'In Queue') {
                         logger.debug('status = OPEN or InQueue');
@@ -100,11 +101,11 @@ class BitstampOrderTracer {
                     }
                     else if (result.body.status === 'Canceled') {
                         logger.info('NOTIFICATION : status = CANCELED');
-                        await delete this.openOrders[bitstampOrderId];
+                        delete this.openOrders[bitstampOrderId];
                     }
                     else if (result.body.status === 'Finished') {
                         logger.info('NOTIFICATION status = FINISHED');
-                        await delete this.openOrders[bitstampOrderId];
+                        delete this.openOrders[bitstampOrderId];
                     }
                     else {
                         logger.err('status :' + result.body.status + ' is unknown');
@@ -115,6 +116,7 @@ class BitstampOrderTracer {
         if (this.timeout) {
             setTimeout(this.periodicStatusChecker.bind(this), this.timeout);
         }
+        return this.openOrders;
     }
 
     /**
@@ -128,7 +130,7 @@ class BitstampOrderTracer {
      */
     addNewTransaction(transactionDetails) {
         if (this.openOrders[String(transactionDetails.bitstampOrderId)]) {
-            throw new Error('order id already exist');
+            throw { status_code: Status.Error, status: returnMessages.Error, message: 'order id - ' + transactionDetails.bitstampOrderId  + ' already exist' };
         }
         const date = new Date();
         transactionDetails['updateTime'] = date.getTime();

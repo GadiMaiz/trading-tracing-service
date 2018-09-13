@@ -2,12 +2,13 @@
 let chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
-import series from 'async/series';
+import autoInject from 'async/autoInject';
 
-import { Status, returnMessages } from 'status';
+// import { Status, returnMessages } from 'status';
 import { BitstampHandler } from './modules/bitstamp/bitstampHandler';
 import BitstampOrderTracer from './modules/bitstamp/bitstampOrderTracer';
-import Bitstamp from './thirdParty/bitstamp/Bitstamp';
+// import Bitstamp from './thirdParty/bitstamp/Bitstamp';
+
 
 
 const json1 = { body: { username: 'gadi', balance: '100000' } };
@@ -26,7 +27,7 @@ class BitstampWrapperMock {
         return validRetVal;
     }
 
-    openOrders(params = null) {
+    openOrdersAll(params = null) {
 
     }
 
@@ -84,7 +85,7 @@ describe('all tests', () => {
             chai.expect(ret.status_code).to.equal(0);
         });
 
-        it('buyImmediateOrCancel buyLimitOrder internal request failure', () => {
+        it('buyImmediateOrCancel buyLimitOrder internal request failure', async () => {
             let bitstampWrapperMock = new BitstampWrapperMock();
             let bitstampOrderTracerMock = new BitstampOrderTracerMock();
 
@@ -95,7 +96,7 @@ describe('all tests', () => {
 
             let params = { currency: null, price: '6823.2', amount: '12' };
 
-            return chai.expect(bitstampHandler.buyImmediateOrCancel(params)).to.be.rejected;
+            return chai.expect(bitstampHandler.buyImmediateOrCancel(params)).to.eventually.be.rejected;
         });
 
         it('sellImmediateOrCancel valid request', async () => {
@@ -177,49 +178,49 @@ describe('all tests', () => {
     describe('BitstampOrderTracer module tests', () => {
 
 
-        it('addNewTransaction', () => {
+        it('addNewTransaction', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 5000 }, tickerStreamMock);
 
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(0);
+            chai.expect(Object.keys(bitstampOrderTracer.openOrders)).to.have.lengthOf(0);
             bitstampOrderTracer.addNewTransaction(internalTransaction);
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(1);
+            chai.expect(Object.keys(bitstampOrderTracer.openOrders)).to.have.lengthOf(1);
 
         });
 
-        it('periodicStatusChecker #1', async () => {
+        it('periodicStatusChecker #1 - new order was inserted and openOrdersAll returns the order (still open)', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
-            bitstampWrapperMock.openOrders = function () {
+            bitstampWrapperMock.openOrdersAll = function () {
                 return { body: [{ id: internalTransaction.bitstampOrderId, datetime: '389724983274', type: '1', price: '213', amount: '0.343' }] };
             };
 
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
-            await bitstampOrderTracer.addNewTransaction(internalTransaction);
+            bitstampOrderTracer.addNewTransaction(internalTransaction);
 
-            await setTimeout(bitstampOrderTracer.periodicStatusChecker.bind(bitstampOrderTracer), 1000);
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(1);
+            let orders = await bitstampOrderTracer.periodicStatusChecker();
+            chai.expect(Object.keys(orders)).to.have.lengthOf(1);
         });
 
-        it('periodicStatusChecker #2', async () => {
+        it('periodicStatusChecker #2 - openOrdersAll throws an exception, validating it is being handled and openOrders not being changed', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
-            bitstampWrapperMock.openOrders = function () {
-                throw new Error('periodicStatusChecker #2 ERROR');
+            bitstampWrapperMock.openOrdersAll = function () {
+                throw new Error('periodicStatusChecker #2 exception');
             };
 
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
-            await bitstampOrderTracer.addNewTransaction(internalTransaction);
-            await setTimeout(bitstampOrderTracer.periodicStatusChecker.bind(bitstampOrderTracer), 1000);
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(1);
+            bitstampOrderTracer.addNewTransaction(internalTransaction);
+            let orders = await bitstampOrderTracer.periodicStatusChecker();
+            chai.expect(Object.keys(orders)).to.have.lengthOf(1);
         });
 
-        it('periodicStatusChecker #3', async () => {
+        it('periodicStatusChecker #3 - new order was added, openOrdersAll return empty but orderStatus return "open" status  ' , async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
 
-            bitstampWrapperMock.openOrders = function () {
+            bitstampWrapperMock.openOrdersAll = function () {
                 return { body: [] };
             };
 
@@ -227,17 +228,17 @@ describe('all tests', () => {
                 return { body: { status: 'Open' } };
             };
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
-            await bitstampOrderTracer.addNewTransaction(internalTransaction);
+            bitstampOrderTracer.addNewTransaction(internalTransaction);
 
-            await setTimeout(bitstampOrderTracer.periodicStatusChecker.bind(bitstampOrderTracer), 1000);
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(1);
+            let orders = await bitstampOrderTracer.periodicStatusChecker();
+            chai.expect(Object.keys(orders)).to.have.lengthOf(1);
         });
-
-        it('periodicStatusChecker #4', async () => {
+           
+        it('periodicStatusChecker #4 - new order was added, openOrdersAll return empty but orderStatus return "in queue" status ', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
 
-            bitstampWrapperMock.openOrders = function () {
+            bitstampWrapperMock.openOrdersAll = function () {
                 return { body: [] };
             };
 
@@ -245,61 +246,68 @@ describe('all tests', () => {
                 return { body: { status: 'In Queue' } };
             };
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
-            await bitstampOrderTracer.addNewTransaction(internalTransaction);
+            bitstampOrderTracer.addNewTransaction(internalTransaction);
 
-            setTimeout(bitstampOrderTracer.periodicStatusChecker.bind(bitstampOrderTracer), 1000);
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(1);
+            let orders = await bitstampOrderTracer.periodicStatusChecker();
+            chai.expect(Object.keys(orders)).to.have.lengthOf(1);
         });
 
-        it('periodicStatusChecker #5 - not working', async () => {
+        it('periodicStatusChecker #5 -  new order was added, openOrdersAll return empty but orderStatus return "canceled" status - expected to be deleted', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
 
-            bitstampWrapperMock.openOrders = function () {
-                return { body: [] };
+            bitstampWrapperMock.openOrdersAll = function () {
+                return new Promise(function (resolve) {
+                    resolve({ body: [] });
+                });
             };
 
-            bitstampWrapperMock.orderStatus = function (param) {
-                return { body: { status: 'Canceled' } };
+            bitstampWrapperMock.orderStatus = function () {
+                return new Promise(function (resolve) {
+                    resolve({ body: { status: 'Canceled' } });
+                });
             };
 
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
             bitstampOrderTracer.addNewTransaction(internalTransaction);
-            setTimeout(bitstampOrderTracer.periodicStatusChecker.bind(bitstampOrderTracer), 1000);
 
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(0);
-
+            let orders = await bitstampOrderTracer.periodicStatusChecker();
+            return chai.expect(orders).to.be.empty;
         });
 
-        it('periodicStatusChecker #6 - not working', async () => {
+
+        it('periodicStatusChecker #6 - new order was added, openOrdersAll return empty but orderStatus return "finished" status - expected to be deleted', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
 
-            bitstampWrapperMock.openOrders = function () {
+            bitstampWrapperMock.openOrdersAll = function () {
                 return { body: [] };
             };
 
-            bitstampWrapperMock.orderStatus = function (param) {
+            bitstampWrapperMock.orderStatus = function () {
                 return { body: { status: 'Finished' } };
             };
 
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
             bitstampOrderTracer.addNewTransaction(internalTransaction);
-            // await bitstampOrderTracer.periodicStatusChecker();
-            setTimeout(bitstampOrderTracer.periodicStatusChecker.bind(bitstampOrderTracer), 1000);
 
-            chai.expect(Object.keys(bitstampOrderTracer.openOrders).length).to.equal(0);
+            let orders = await bitstampOrderTracer.periodicStatusChecker();
+            return chai.expect(orders).to.be.empty;
 
         });
 
-        it('periodicStatusChecker #7 - not working', async () => {
+        it('periodicStatusChecker #7 - add new transaction being called twise with the same ID ', async () => {
             let tickerStreamMock = new TickerStreamMock();
             let bitstampWrapperMock = new BitstampWrapperMock();
 
             let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, tickerStreamMock);
             bitstampOrderTracer.addNewTransaction(internalTransaction);
-            return await chai.expect(bitstampOrderTracer.addNewTransaction(internalTransaction)).to.eventually.be.rejected;
-
+            try {
+                bitstampOrderTracer.addNewTransaction(internalTransaction);
+            }
+            catch (err) {
+                chai.expect(err.status_code).to.equal(1); // status code 1 = error
+            }
         });
     });
 });
