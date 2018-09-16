@@ -8,6 +8,5 @@ import app from 'server';
 /**
  * Create HTTP server.
  */
-
 const server = http.createServer(app).listen(3000);
 export default server;

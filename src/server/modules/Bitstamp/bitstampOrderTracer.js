@@ -90,10 +90,18 @@ class BitstampOrderTracer {
                     }
                 }
                 if (!orderFound) {
-                    const result = await this.bitstampWrapper.orderStatus(bitstampOrderId);
+                    let result = null;
+                    try {
+                        result = await this.bitstampWrapper.orderStatus(bitstampOrderId);
+                    }
+                    catch (err) {
+                        logger.err('requesting order status for order id ' + bitstampOrderId + 'err = ' + err);
+                        return this.openOrders;
+                    }
                     if (!result) {
                         logger.err('order status request of order ' + bitstampOrderId + ' has failed');
                         delete this.openOrders[bitstampOrderId];
+                        return this.openOrders;
                     }
                     if (result.body.status === 'Open' || result.body.status === 'In Queue') {
                         logger.debug('status = OPEN or InQueue');
@@ -130,7 +138,7 @@ class BitstampOrderTracer {
      */
     addNewTransaction(transactionDetails) {
         if (this.openOrders[String(transactionDetails.bitstampOrderId)]) {
-            throw { status_code: Status.Error, status: returnMessages.Error, message: 'order id - ' + transactionDetails.bitstampOrderId  + ' already exist' };
+            throw { status_code: Status.Error, status: returnMessages.Error, message: 'order id - ' + transactionDetails.bitstampOrderId + ' already exist' };
         }
         const date = new Date();
         transactionDetails['updateTime'] = date.getTime();

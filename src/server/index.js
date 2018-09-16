@@ -4,10 +4,13 @@ import indexRouter from './routes';
 import usersRouter from './routes/users';
 import requestRouter from './routes/requests';
 import logger from 'logger';
+import EventQueue from '../utils/eventQueue';
+import OrderExecuter from './modules/orderExecuter';
+
+let orderExecuter = new (OrderExecuter);
+let eventQueue = new EventQueue(orderExecuter);
 
 const server = express();
-
-
 server.use(express.json());
 
 server.use('/', indexRouter);
