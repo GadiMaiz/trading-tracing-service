@@ -1,7 +1,7 @@
 import http from 'http';
 
 // Set process name
-process.title = ['']; // TO-DO: change to your process real name.
+process.title = ['Trading-Tracing service']; // TO-DO: change to your process real name.
 
 import app from 'server';
 

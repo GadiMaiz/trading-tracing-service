@@ -14,6 +14,7 @@
             "logger": [
                 "./src/utils/logger"
             ],
+<<<<<<< HEAD
             "handlerDeligator": [
                 "./src/server/modules/handlerDeligator"
             ],
@@ -26,6 +27,8 @@
             "status" : [
                 "./src/utils/status"
             ]
+=======
+>>>>>>> adfa6d1a983775c011412b53e83f0f242d993cb5
         }
     },
     "exclude": [

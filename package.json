@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon --inspect  ./src/index.js --exec babel-node",
     "build": "babel src -d lib",
-    "run:dev": "node ./lib/index.js",
+    "run:prod": "node .",
     "test": "nyc --temp-directory coverage --reporter=html --reporter=text --exclude '**/*.spec.js' mocha --require babel-register  ./src/**/*.spec.js --require babel-core/register --coverage",
     "lint": "eslint --ignore-path ./config/.eslintignore --config ./config/.eslintrc.json ."
   },
@@ -27,7 +27,6 @@
   },
   "homepage": "https://github.com/bitmain-israel/smart-trade-node-project-template#readme",
   "devDependencies": {
-    "bluebird": "~3.5.1",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
     "babel-plugin-module-resolver": "^3.1.1",
@@ -40,21 +39,12 @@
     "eslint-plugin-react": "^7.11.1",
     "mocha": "^5.2.0",
     "nodemon": "^1.18.3",
-    "nyc": "^12.0.2",
-    "express": "~4.16.0",
-    "http-errors": "~1.6.2",
-    "request": "~2.83.0",
-    "pusher-js": "~4.2.1"
+    "nyc": "^12.0.2"
   },
   "engines": {
     "node": ">= 8.0.0"
   },
   "dependencies": {
-    "async": "^2.6.1",
-    "bitfinex-api-node": "^2.0.0",
-    "chai-as-promised": "^7.1.1",
-    "kafka-node": "^3.0.1",
-    "sinon": "^6.1.5",
     "winston": "^3.0.0"
   }
 }
