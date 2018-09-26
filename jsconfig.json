@@ -14,9 +14,8 @@
             "logger": [
                 "./src/utils/logger"
             ],
-<<<<<<< HEAD
-            "handlerDeligator": [
-                "./src/server/modules/handlerDeligator"
+            "handlerDelegator": [
+                "./src/server/modules/handlerDelegator"
             ],
             "Bitstamp": [
                 "./src/server/thirdParty/bitstamp/Bitstamp"
@@ -26,9 +25,13 @@
             ],
             "status" : [
                 "./src/utils/status"
-            ]
-=======
->>>>>>> adfa6d1a983775c011412b53e83f0f242d993cb5
+            ],
+            "eventQueue" : [
+                "./src/utils/eventQueue"
+            ],
+            "notifications" : [
+                "./src/utils/notifications"
+            ],
         }
     },
     "exclude": [

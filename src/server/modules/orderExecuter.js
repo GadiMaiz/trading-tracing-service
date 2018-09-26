@@ -1,170 +1,196 @@
 import { orderTypes } from '../../utils/orderTypes';
 import { Status, returnMessages } from 'status';
 import logger from 'logger';
-import Handler from 'handlerDeligator';
+import Handler from 'handlerDelegator';
+import { Notifications } from '../../utils/notifications';
+
+
 const handler = new Handler();
+
+const getEventQueue = require('eventQueue');
 
 class OrderExecuter {
 
-    async execute(order) {
-        let parameters = JSON.parse(order.value);
-        switch (Number(order.key)) {
-            case (orderTypes.getUserData):
-                console.log('getUserData');
-                this.getUserData(parameters);
-                break;
-            case (orderTypes.login): {
-                console.log('login');
-                this.login(parameters);
-                break;
-            }
-            case (orderTypes.buyImmediaOrCancel):
-                console.log('buyImmediaOrCancel');
-                this.buyImmediateOrCancel(parameters);
-                break;
-            case (orderTypes.sellImmediaOrCancel):
-                console.log('sellImmediaOrCancel');
-                this.sellImmediateOrCancel(parameters);
-                break;
-            case (orderTypes.timeBuyTaking):
-                console.log('timeBuyTaking');
-                break;
-            case (orderTypes.timeSellTaking):
-                console.log('timeSellTaking');
-                break;
-            case (orderTypes.timedBuyMaking):
-                console.log('timedBuyMaking');
-                this.timedBuyMaking(parameters);
-                break;
-            case (orderTypes.timedSellMaking):
-                this.timedSellMaking(parameters);
-                console.log('timedSellMaking');
-                break;
-        }
-    }
-    // console.log('order : ' + JSON.stringify(order));
-    async login(params) {
-        const exchange = params.exchange.toLowerCase();
-        const key = params.key;
-        const secret = params.secret;
-        const clientId = params.clientId;
+  /**
+   * the function accept order object and executes the order requested
+   * @param {object} order
+   * @param {string} order.key - a numeric string that defined in orderTypes.js and represent the order type
+   * @param {object} order.value - a json object that contains all the parameters for the order request
+   */
+  async execute(order) {
+    let parameters = JSON.parse(order.value);
+    getEventQueue().sendNotification(Notifications.ReceivedFromEventQueue, { requestId : parameters.requestId });
 
-        try {
-            const ret = await handler.login(exchange, { key, secret, clientId });
-            logger.info('successfuly logged in to ' + exchange + ' exchange');
-            // res.json(ret);
-        }
-        catch (err) {
-            logger.err('could not log in to ' + exchange + ' exchange, err = ' + err);
-            // res.statusCode = 400;
-            // res.json(err);
-        }
+    switch (Number(order.key)) {
+      case (orderTypes.getUserData):
+        console.log('getUserData');
+        this.getUserData(parameters);
+        break;
+      case (orderTypes.login): {
+        console.log('login');
+        this.login(parameters);
+        break;
+      }
+      case (orderTypes.buyImmediateOrCancel):
+        console.log('buyImmediateOrCancel');
+        this.buyImmediateOrCancel(parameters);
+        break;
+      case (orderTypes.sellImmediateOrCancel):
+        console.log('sellImmediateOrCancel');
+        this.sellImmediateOrCancel(parameters);
+        break;
+      case (orderTypes.timeBuyTaking):
+        console.log('timeBuyTaking');
+        break;
+      case (orderTypes.timeSellTaking):
+        console.log('timeSellTaking');
+        break;
+      case (orderTypes.timedBuyMaking):
+        console.log('timedBuyMaking');
+        this.timedBuyMaking(parameters);
+        break;
+      case (orderTypes.timedSellMaking):
+        console.log('timedSellMaking');
+        this.timedSellMaking(parameters);
+        break;
     }
+  }
 
+  /**
+   * login calls the login function of the handler
+   * @param {object} params
+   * @param {object} params.key      - part of the credentials
+   * @param {object} params.secret   - part of the credentials
+   * @param {object} params.clientId - part of the credentials
+   * @param {object} params.requestId- identifier for the request
+   * @param {object} params.exchange - the exchange name the order addressed to
+   */
+  async login(params) {
+    const exchange = params.exchange.toLowerCase();
+    const key = params.key;
+    const secret = params.secret;
+    const clientId = params.clientId;
+    const requestId = params.requestId;
 
-    async getUserData(params) {
-        if (!params.exchange) {
-            let err = new Error(returnMessages.InputParametersMissing);
-            logger.err(err);
-            // err.status = 400;
-            // return next(err);
-        }
-        const exchange = params.exchange.toLowerCase();
-        try {
-            const userData = await handler.getUserAccountData(exchange);
-            console.log(JSON.stringify(userData));
-            // res.json(userData);
-        }
-        catch (err) {
-            logger.err(err);
-            // res.statusCode = 400;
-            // res.json(err);
-        }
+    try {
+      await handler.login(exchange, { key, secret, clientId, requestId });
+      getEventQueue().sendNotification(Notifications.Success, { requestId : requestId });
+      logger.debug('successfully logged in to ' + exchange + ' exchange' + ' requestId = ' + requestId);
     }
-
-    async buyImmediateOrCancel(params) {
-        const amount = params.amount;
-        const price = params.price;
-        if (!amount || !price || !params.exchange) {
-            let err = new Error(returnMessages.InputParametersMissing);
-            logger.err(err);
-            // err.status = 400;
-            // return next(err);
-        }
-        const exchange = params.exchange.toLowerCase();
-        try {
-            const status = await handler.buyImmediateOrCancel(exchange, { amount: amount, price: price });
-            console.log(status);
-        }
-        catch (err) {
-            logger.err(err);
-            // res.statusCode = 400;
-            // res.json(err);
-        }
+    catch (err) {
+      getEventQueue().sendNotification(Notifications.Error, { requestId : requestId });
+      logger.error('unable to login to ' + exchange + ' exchange, err =  ' + err +  ' requestId = ' + requestId);
     }
+  }
 
-    async sellImmediateOrCancel(params) {
-        const amount = params.amount;
-        const price = params.price;
-        if (!amount || !price || !params.exchange) {
-            let err = new Error(returnMessages.InputParametersMissing);
-            logger.err(err);
-            // err.status = 400;
-            // return next(err);
-        }
-        const exchange = params.exchange.toLowerCase();
-        try {
-            const status = await handler.sellImmediateOrCancel(exchange, { amount: amount, price: price });
-            console.log(status);
-        }
-        catch (err) {
-            logger.err(err);
-            // res.statusCode = 400;
-            // res.json(err);
-        }
+  /**
+   * calls the getUserData function of the handler
+   * @param {object} params
+   * @param {object} params.exchange - the exchange name the order addressed to
+   */
+  async getUserData(params) {
+    const exchange = params.exchange.toLowerCase();
+    if (!exchange) {
+      let err = new Error(returnMessages.InputParametersMissing);
+      logger.error(err);
     }
+    const requestId = params.requestId;
+    try {
+      const userData = await handler.getUserAccountData(exchange, requestId);
+      getEventQueue().sendNotification(Notifications.Success, { requestId : requestId, data : userData });
+      logger.debug('successfully sent get user data request requestId = ' + requestId);
+    }
+    catch (err) {
+      getEventQueue().sendNotification(Notifications.Error, { requestId : requestId });
+      logger.error('getUserData encountered an error : ' + err );
+    }
+  }
 
-    async timedBuyMaking(params) {
-        const amount = params.amount;
-        const price = params.limitPrice;
-        if (!amount || !price || !params.exchange) {
-            let err = new Error(returnMessages.InputParametersMissing);
-            logger.err(err);
-            // err.status = 400;
-            // return next(err);
-        }
-        const exchange = params.exchange.toLowerCase();
-        try {
-            const status = await handler.buyLimit(exchange, { amount: amount, price: price });
-            console.log(status);
-        }
-        catch (err) {
-            logger.err(err);
-            // res.statusCode = 400;
-            // res.json(err);
-        }
-    }
+  /**
+   * delegates the execution to ImmediateOrCancelRequest with the same parameters
+   * @param {object} params
+   */
+  async buyImmediateOrCancel(params) {
+    this.ImmediateOrCancelRequest('buyImmediateOrCancel', params);
+  }
 
-    async timedSellMaking(params) {
-        const amount = params.amount;
-        const price = params.limitPrice;
-        if (!amount || !price || !params.exchange) {
-            let err = new Error(returnMessages.InputParametersMissing);
-            logger.err(err);
-            // err.status = 400;
-            // return next(err);
-        }
-        const exchange = params.exchange.toLowerCase();
-        try {
-            const status = await handler.sellLimit(exchange, { amount: amount, price: price });
-            console.log(status);
-        }
-        catch (err) {
-            logger.err(err);
-            // res.statusCode = 400;
-            // res.json(err);
-        }
+  /**
+   * delegates the execution to ImmediateOrCancelRequest with the same parameters
+   * @param {object} params
+   */
+  async sellImmediateOrCancel(params) {
+    this.ImmediateOrCancelRequest('sellImmediateOrCancel', params);
+  }
+
+  /**
+   * delegates the execution to  timedRequestMaking with the same parameters
+   * @param {object} params
+   */
+  async timedBuyMaking(params) {
+    this.timedRequestMaking('timedBuyMaking', params);
+  }
+
+  /**
+   * delegates the execution to  timedRequestMaking with the same parameters
+   * @param {object} params
+   */
+  async timedSellMaking(params) {
+    this.timedRequestMaking('timedSellMaking', params);
+  }
+
+  async ImmediateOrCancelRequest(type, params) {
+    const amount = params.amount;
+    const price = params.price;
+    if (!amount || !price || !params.exchange || !params.requestId) {
+      getEventQueue().sendNotification(Notifications.Error, { requestId : params.requestId , statusCode : Status.InputParametersMissing, returnMessage: returnMessages.InputParametersMissing });
+      logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
+      return;
     }
+    const exchange = params.exchange.toLowerCase();
+    try {
+      if (type === 'sellImmediateOrCancel') {
+        await handler.sellImmediateOrCancel(exchange,
+          { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair });
+      }
+      else{
+        await handler.buyImmediateOrCancel(exchange,
+          { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair });
+      }
+      getEventQueue().sendNotification(Notifications.SentToEventQueue, { requestId : params.requestId });
+      logger.debug('successfully sent ' + type + ' request requestId = ' + params.requestId);
+    }
+    catch (err) {
+      logger.error('an error occurred while executing ' + type + ' err = '  + JSON.stringify(err));
+      getEventQueue().sendNotification(Notifications.Error, { requestId: params.requestId, error : err } );
+    }
+  }
+
+  async timedRequestMaking(type, params) {
+    const amount = params.amount;
+    const price = params.price;
+    if (!amount || !price || !params.exchange || !params.requestId) {
+      getEventQueue().sendNotification(Notifications.Error, { requestId : params.requestId , statusCode : Status.InputParametersMissing, returnMessage: returnMessages.InputParametersMissing });
+      logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
+      return;
+    }
+    const exchange = params.exchange.toLowerCase();
+    try {
+      if (type === 'timedBuyMaking')
+      {
+        await handler.buyLimit(exchange,
+          { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
+      }
+      else{
+        await handler.sellLimit(exchange, { amount: amount, price: price });
+      }
+      getEventQueue().sendNotification(Notifications.SentToEventQueue, { requestId : params.requestId });
+      logger.debug('successfully sent ' + type + ' request requestId = ' + params.requestId);
+    }
+    catch (err) {
+      logger.error('an error occurred while executing ' + type + ' err = '  + JSON.stringify(err));
+      getEventQueue().sendNotification(Notifications.Error, { requestId: params.requestId, error : err } );
+    }
+  }
 
 }
 

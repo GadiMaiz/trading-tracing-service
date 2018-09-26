@@ -4,7 +4,7 @@
   "description": "Node.js project-template for the smart-trader team.",
   "main": "lib/index.js",
   "scripts": {
-    "start": "nodemon --inspect  ./src/index.js --exec babel-node",
+    "start": "nodemon --inspect=9230  ./src/index.js --exec babel-node",
     "build": "babel src -d lib",
     "run:prod": "node .",
     "test": "nyc --temp-directory coverage --reporter=html --reporter=text --exclude '**/*.spec.js' mocha --require babel-register  ./src/**/*.spec.js --require babel-core/register --coverage",

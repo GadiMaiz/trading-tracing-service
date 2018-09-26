@@ -21,10 +21,13 @@
                     "server": "./src/server",
                     "db": "./src/dal",
                     "logger": "./src/utils/logger",
-                    "handlerDeligator" : "./src/server/modules/handlerDeligator" ,
+                    "handlerDelegator" : "./src/server/modules/handlerDelegator" ,
                     "Bitstamp" : "./src/server/thirdParty/bitstamp/Bitstamp",
                     "TickerStream" : "./src/server/thirdParty/bitstamp/streams/TickerStream",
-                    "status" : "./src/utils/status"
+                    "status" : "./src/utils/status",
+                    "eventQueue" : "./src/utils/eventQueue",
+                    "notifications" : "./src/utils/notifications"
+                    
                 }
             }
         ]

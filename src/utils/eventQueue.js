@@ -1,43 +1,94 @@
 let kafka = require('kafka-node');
 import logger from 'logger';
+import { Status, returnMessages } from 'status';
 
 
+// configurations:
+let ORDERS_TOPIC = 'orders';
+let NOTIFICATION_TOPIC = 'notifications';
+let PARTITION = 0;
+let PORT = '2181';
+let URL = 'localhost';
+
+let KeyedMessage = kafka.KeyedMessage;
 class EventQueue {
-    constructor(orderExecuter) {
-        this.client = new kafka.Client('localhost:2181');
-        this.topics = [{ topic: 'orders', partition: 0 }];
-        this.options = { autoCommit: true, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1024 };
-        this.consumer = new kafka.Consumer(this.client, this.topics, this.options);
-        this.offset = new kafka.Offset(this.client);
+  constructor(orderExecuter) {
+    // ////// notifications producer initilization
 
-        this.consumer.on('message', function (message) {
-            orderExecuter.execute(message);
-        });
+    this.client = new kafka.Client( URL + ':' + PORT);
+    this.notificationProducer = new kafka.Producer(this.client);
 
-        this.consumer.on('error', function (err) {
-            logger.err('Kafka expericanced an error - ' + err);
-        });
+    this.notificationProducer.on('ready', function () {
+      this.client.refreshMetadata([NOTIFICATION_TOPIC], (err) => {
+        if (err) {
+          console.warn('Error refreshing kafka metadata', err);
+        }
+      });
+    });
 
-        this.consumer.on('offsetOutOfRange', function (topic) {
-            topic.maxNum = 2;
-            this.offset.fetch([topic], function (err, offsets) {
-                if (err) {
-                    return console.error(err);
-                }
-                let min = Math.min.apply(null, offsets[topic.topic][topic.partition]);
-                this.consumer.setOffset(topic.topic, topic.partition, min);
-            });
-        });
-    }
+    this.notificationProducer.on('error', function (err) {
+      console.log('error', err);
+    });
 
-    eventOrderSuccess(order) {
-        console.log(order);
-    }
+    // order requests consumer initilization
 
-    eventOrderFailed(order) {
-        console.log(order);
-    }
+    this.topics = [{ topic: ORDERS_TOPIC, partition: 0 }];
+    this.options = { autoCommit: true, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1024 };
+    this.consumer = new kafka.Consumer(this.client, this.topics, this.options);
+    this.offset = new kafka.Offset(this.client);
+
+    this.consumer.on('message', function (message) {
+      orderExecuter.execute(message);
+    });
+
+    this.consumer.on('error', function (err) {
+      logger.error('Kafka expericanced an error - ' + err);
+    });
+
+    this.consumer.on('offsetOutOfRange', function (topic) {
+      topic.maxNum = 2;
+      this.offset.fetch([topic], function (err, offsets) {
+        if (err) {
+          return console.error(err);
+        }
+        let min = Math.min.apply(null, offsets[topic.topic][topic.partition]);
+        this.consumer.setOffset(topic.topic, topic.partition, min);
+      });
+    });
+  }
+
+  sendNotification(notificationType, parameters) {
+    let keyedMessage = new KeyedMessage(notificationType, JSON.stringify(parameters));
+
+    this.notificationProducer.send([{ topic: NOTIFICATION_TOPIC,  partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
+      if (err) {
+        logger.error(err);
+      }
+      else {
+        logger.info(JSON.stringify(result));
+      }
+    });
+  }
+
+  eventOrderSuccess(order) {
+    console.log(order);
+  }
+
+  eventOrderFailed(order) {
+    console.log(order);
+  }
 }
 
+let eventQueue;
 
-export default EventQueue;
+const getInstance = (orderExecuter) => {
+  if (!eventQueue) {
+    if (!orderExecuter) {
+      throw { status: Status.Error, message: returnMessages.EventQueueInitFailed };
+    }
+    eventQueue = new EventQueue(orderExecuter);
+  }
+  return eventQueue;
+};
+
+module.exports = getInstance;
