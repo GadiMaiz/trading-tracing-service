@@ -60,7 +60,7 @@ let bitfinexHandler;
 const getInstance = (parameters) => {
   if (!bitfinexHandler) {
     if (!parameters) {
-      throw { status: returnMessages.Error, message: returnMessages.NotLoggedIn };
+      throw { status: returnMessages.NotLoggedIn, message: returnMessages.NotLoggedIn };
     }
     bitfinexHandler = new BitfinexHandler(parameters);
   }

@@ -50,11 +50,27 @@ class BitstampOrderTracer {
         else {
           logger.info('sold ' + data.amount_str + ' for price: ' + data.price_str);
         }
+
+        order.transactions.push( { price : data.price , amount : data.amount } );
         order.amount -= parseFloat(data.amount);
-        getEventQueue().sendNotification(Notifications.Update, { requestId : order.requestId, amount : data.amount, price : data.price, amountLeft : order.amount });
+        getEventQueue().sendNotification(
+          Notifications.Update,
+          { requestId : order.requestId,
+            exchangeOrderId : order.bitstampOrderId,
+            amount : data.amount,
+            price : data.price,
+            amountLeft : order.amount,
+            exchange : 'bitstamp' });
         if (order.amount === 0) {
+          const average = this.calcAveragePrice(order.transactions);
           // here we should send a notification to kafka
-          getEventQueue().sendNotification(Notifications.Finished, { requestId : order.requestId });
+          getEventQueue().sendNotification(Notifications.Finished, 
+            { requestId : order.requestId,
+              exchangeOrderId : order.bitstampOrderId,
+              price  : average.price,
+              amount : average.amount,
+              exchange : 'bitstamp'
+            });
           logger.info('request ' + order.requestId + ' successfully fulfilled !');
           delete this.openOrders[order.bitstampOrderId];
         }
@@ -104,13 +120,22 @@ class BitstampOrderTracer {
             result = await this.bitstampWrapper.orderStatus(bitstampOrderId);
           }
           catch (err) {
-            getEventQueue().sendNotification(Notifications.Error, { error: err, requestId : this.openOrders[bitstampOrderId].requestId });
+            getEventQueue().sendNotification(Notifications.Error,
+              { error: err,
+                requestId : this.openOrders[bitstampOrderId].requestId,
+                exchangeOrderId : bitstampOrderId
+              });
             logger.error('requesting order status for order id ' + bitstampOrderId + 'err = ' + err);
             return this.openOrders;
           }
           if (!result) {
             logger.error('order status request of order ' + bitstampOrderId + ' has failed');
-            getEventQueue().sendNotification(Notifications.Error, { returnMessage: returnMessages.RequestFailed, requestId : this.openOrders[bitstampOrderId].requestId });
+            getEventQueue().sendNotification(Notifications.Error, {
+              errorMessage: returnMessages.RequestFailed,
+              errorCode : Status.RequestFailed,
+              requestId : this.openOrders[bitstampOrderId].requestId,
+              exchangeOrderId : bitstampOrderId,
+            });
             delete this.openOrders[bitstampOrderId];
             return this.openOrders;
           }
@@ -119,12 +144,22 @@ class BitstampOrderTracer {
             this.openOrders[bitstampOrderId]['updateTime'] = currentTime;
           }
           else if (result.body.status === 'Canceled') {
-            getEventQueue().sendNotification(Notifications.Cancelled, { requestId : this.openOrders[bitstampOrderId].requestId });
+            getEventQueue().sendNotification(Notifications.Cancelled,
+              {
+                exchange : 'bitstamp',
+                requestId : this.openOrders[bitstampOrderId].requestId,
+                exchangeOrderId : bitstampOrderId,
+              });
             logger.info('request with id ' + this.openOrders[bitstampOrderId].requestId + ' was CANCELED');
             delete this.openOrders[bitstampOrderId];
           }
-          else if (result.body.status === 'Finished') {
-            getEventQueue().sendNotification(Notifications.Finished, { requestId : this.openOrders[bitstampOrderId].requestId });
+          else if (result.body.status === 'Finished') { // TODO here we should parse the body to get transaction history;
+            getEventQueue().sendNotification(Notifications.Finished,
+              {
+                exchange : 'bitstamp',
+                requestId : this.openOrders[bitstampOrderId].requestId,
+                exchangeOrderId : bitstampOrderId,
+              });
             logger.info('request with id ' + this.openOrders[bitstampOrderId].requestId + ' was FINISHED');
             delete this.openOrders[bitstampOrderId];
           }
@@ -156,6 +191,16 @@ class BitstampOrderTracer {
     const date = new Date();
     transactionDetails['updateTime'] = date.getTime();
     this.openOrders[String(transactionDetails.bitstampOrderId)] = transactionDetails;
+  }
+
+  calcAveragePrice(transactions) {
+    let amount = 0.0;
+    let price = 0.0;
+    transactions.forEach( transaction => {
+      amount += transaction.amount;
+      price += transaction.price * transaction.amount;
+    });
+    return { amount : amount, price: price / amount };
   }
 
 }

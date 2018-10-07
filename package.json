@@ -45,6 +45,12 @@
     "node": ">= 8.0.0"
   },
   "dependencies": {
+    "bluebird": "^3.5.2",
+    "express": "^4.16.3",
+    "http-errors": "^1.7.1",
+    "moment": "^2.22.2",
+    "pusher-js": "^4.3.1",
+    "request": "^2.88.0",
     "winston": "^3.0.0"
   }
 }

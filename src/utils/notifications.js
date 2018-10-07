@@ -1,15 +1,16 @@
 export const Notifications = {
-  Success:                    0,
-  AboutToSendToEventQueue:    1,
-  SentToEventQueue:           2,
-  ReceivedFromEventQueue:     3,
-  AboutToSendToExchange:      4,
-  SentToExchange:             5,
-  Cancelled:                  6,
-  Update:                     7,
-  Finished:                   8,
-  Error:                      9,
-  ReceivedOnServer:           10,
+  Success:                        0,
+  AboutToSendToEventQueue:        1,
+  SentToEventQueue:               2,
+  ReceivedFromEventQueue:         3,
+  AboutToSendToExchange:          4,
+  SentToExchange:                 5,
+  Cancelled:                      6,
+  Update:                         7,
+  Finished:                       8,
+  Error:                          9,
+  ReceivedOnServer:               10,
+  SuccessfullyLoggedInToExchange: 11
 };
 
 export const NotificationsString = {

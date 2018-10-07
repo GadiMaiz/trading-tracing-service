@@ -1,6 +1,7 @@
 let kafka = require('kafka-node');
 import logger from 'logger';
 import { Status, returnMessages } from 'status';
+import moment from 'moment';
 
 
 // configurations:
@@ -42,7 +43,7 @@ class EventQueue {
     });
 
     this.consumer.on('error', function (err) {
-      logger.error('Kafka expericanced an error - ' + err);
+      logger.error('Kafka experienced an error - ' + err);
     });
 
     this.consumer.on('offsetOutOfRange', function (topic) {
@@ -58,6 +59,7 @@ class EventQueue {
   }
 
   sendNotification(notificationType, parameters) {
+    parameters['eventTimeStamp'] = moment(Date.now()).format('YYYY-MM-DD HH:mm:ss');
     let keyedMessage = new KeyedMessage(notificationType, JSON.stringify(parameters));
 
     this.notificationProducer.send([{ topic: NOTIFICATION_TOPIC,  partition: PARTITION, messages: [keyedMessage] }], function (err, result) {

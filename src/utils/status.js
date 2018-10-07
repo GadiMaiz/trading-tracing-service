@@ -1,5 +1,6 @@
 
 export const Status = {
+  NoError: -1,
   Success: 0,
   Error: 1,
   ReceivedOnServer: 2,
@@ -9,7 +10,9 @@ export const Status = {
   Open: 6,
   Filled: 7,
   SentToExchange: 8,
-  ProcessingOnServer: 9
+  ProcessingOnServer: 9,
+  NotLoggedIn : 10,
+  RequestFailed : 11
 };
 
 export const returnMessages = {

@@ -53,8 +53,8 @@ class BitstampHandler {
        * the function returnes user data returned from the client
        */
   async getUserAccountData(requestId) {
-    logger.debug('about to send get user data request to bitstamp');
-    getEventQueue().sendNotification(Notifications.AboutToSendToExchange, { exchange: 'bitstamp', requestId : requestId });
+    logger.debug('about to send get user data request to bitstamp requestId' );
+    getEventQueue().sendNotification(Notifications.AboutToSendToExchange, {  requestId : requestId, exchange: 'bitstamp' });
     const ret = await this.bitstampWrapper.balance();
     return ret.body;
   }
@@ -127,7 +127,12 @@ class BitstampHandler {
     let result = null;
 
     getEventQueue().sendNotification(Notifications.AboutToSendToExchange,
-      { requestId : params.requestId, amount : params.amount , price: params.price, currencyPair: params.currencyPair, type : type });
+      { requestId : params.requestId,
+        amount : params.amount,
+        price: params.price,
+        currencyPair: params.currencyPair,
+        exchange : 'bitstamp'
+      });
 
     if (type === 'sell') {
       result = await this.bitstampWrapper.sellLimitOrder(params.amount, params.price, params.currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
@@ -148,7 +153,8 @@ class BitstampHandler {
       amount: result.body.amount,
       price: result.body.price,
       type: type,
-      requestId: params.requestId
+      requestId: params.requestId,
+      transactions : []
     });
     return { status_code: Status.Success, status: returnMessages.OrderSent, orderId: transactionId };
   }
@@ -197,7 +203,7 @@ let bitstampHandler;
 const getInstance = (parameters) => {
   if (!bitstampHandler) {
     if (!parameters) {
-      throw { status: returnMessages.Error, message: returnMessages.NotLoggedIn };
+      throw { status: Status.NotLoggedIn, message: returnMessages.NotLoggedIn };
     }
     bitstampHandler = new BitstampHandler(parameters);
   }

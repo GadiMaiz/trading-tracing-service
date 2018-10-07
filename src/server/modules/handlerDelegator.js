@@ -23,7 +23,7 @@ class HandlerDelegator {
      */
   getUserAccountData(exchange, requestId) {
     const getInstance = require(Exchanges[exchange]);
-    return  getInstance().getUserAccountData(exchange, requestId);
+    return  getInstance().getUserAccountData(requestId);
   }
 
   /**
