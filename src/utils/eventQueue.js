@@ -2,21 +2,24 @@ let kafka = require('kafka-node');
 import logger from 'logger';
 import { Status, returnMessages } from 'status';
 import moment from 'moment';
+import { Module } from 'moduleInfo';
 
 
 // configurations:
 let ORDERS_TOPIC = 'orders';
 let NOTIFICATION_TOPIC = 'notifications';
+let BALANCES_TOPIC = 'balances';
 let PARTITION = 0;
 let PORT = '2181';
 let URL = 'localhost';
 
+
 let KeyedMessage = kafka.KeyedMessage;
 class EventQueue {
   constructor(orderExecuter) {
-    // ////// notifications producer initilization
+    // ////// notifications producer initialization
 
-    this.client = new kafka.Client( URL + ':' + PORT);
+    this.client = new kafka.Client(URL + ':' + PORT);
     this.notificationProducer = new kafka.Producer(this.client);
 
     this.notificationProducer.on('ready', function () {
@@ -30,6 +33,23 @@ class EventQueue {
     this.notificationProducer.on('error', function (err) {
       console.log('error', err);
     });
+
+
+    this.balanceProducer = new kafka.Producer(this.client);
+
+
+    this.balanceProducer.on('ready', function () {
+      this.client.refreshMetadata([BALANCES_TOPIC], (err) => {
+        if (err) {
+          console.warn('Error refreshing kafka metadata', err);
+        }
+      });
+    });
+
+    this.balanceProducer.on('error', function (err) {
+      console.log('error', err);
+    });
+
 
     // order requests consumer initilization
 
@@ -60,9 +80,9 @@ class EventQueue {
 
   sendNotification(notificationType, parameters) {
     parameters['eventTimeStamp'] = moment(Date.now()).format('YYYY-MM-DD HH:mm:ss');
+    parameters['sendingModule'] = Module.name;
     let keyedMessage = new KeyedMessage(notificationType, JSON.stringify(parameters));
-
-    this.notificationProducer.send([{ topic: NOTIFICATION_TOPIC,  partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
+    this.notificationProducer.send([{ topic: NOTIFICATION_TOPIC, partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
       if (err) {
         logger.error(err);
       }
@@ -72,12 +92,16 @@ class EventQueue {
     });
   }
 
-  eventOrderSuccess(order) {
-    console.log(order);
-  }
-
-  eventOrderFailed(order) {
-    console.log(order);
+  sendBalance(exchange, parameters) {
+    let keyedMessage = new KeyedMessage(exchange, JSON.stringify(parameters));
+    this.notificationProducer.send([{ topic:BALANCES_TOPIC, partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
+      if (err) {
+        logger.error(err);
+      }
+      else {
+        logger.info(JSON.stringify(result));
+      }
+    });
   }
 }
 

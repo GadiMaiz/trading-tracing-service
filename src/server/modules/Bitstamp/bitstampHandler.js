@@ -1,15 +1,17 @@
 import Bitstamp from 'Bitstamp';
-
-import BitstampOrderTracer from './bitstampOrderTracer';
-
-import logger from 'logger';
-
-import { Status, returnMessages } from 'status';
-
-import CurrencyPairs from './currencyPairs';
-
-import { Notifications }  from  'notifications';
 import getEventQueue from 'eventQueue';
+import logger from 'logger';
+import { Notifications } from 'notifications';
+import { returnMessages, Status } from 'status';
+import BitstampOrderTracer from './bitstampOrderTracer';
+import { PairsTo, currencyDictionary } from './currencyPairs';
+import BalanceManager from '../../../utils/balanceManager';
+
+
+
+
+
+
 
 // global const shell be moved to configuration
 const BITSTAMP_REQUEST_TIMEOUT = 5000;
@@ -38,7 +40,8 @@ class BitstampHandler {
         timeout: BITSTAMP_REQUEST_TIMEOUT,
         rateLimit: true // turned on by default
       });
-      this.bitstampOrderTracer = new BitstampOrderTracer(this.bitstampWrapper, { periodToCheck: PERIOD_TO_CHECK, oldLimit: OLD_LIMIT });
+      this.balanceManager = new BalanceManager(currencyDictionary);
+      this.bitstampOrderTracer = new BitstampOrderTracer(this.bitstampWrapper, { periodToCheck: PERIOD_TO_CHECK, oldLimit: OLD_LIMIT }, this.balanceManager);
     }
     else if (bitstampWrapper && bitstampOrderTracer) {
       this.bitstampWrapper = bitstampWrapper;
@@ -53,8 +56,8 @@ class BitstampHandler {
        * the function returnes user data returned from the client
        */
   async getUserAccountData(requestId) {
-    logger.debug('about to send get user data request to bitstamp requestId' );
-    getEventQueue().sendNotification(Notifications.AboutToSendToExchange, {  requestId : requestId, exchange: 'bitstamp' });
+    logger.debug('about to send get user data request to bitstamp requestId');
+    getEventQueue().sendNotification(Notifications.AboutToSendToExchange, { requestId: requestId, exchange: 'bitstamp' });
     const ret = await this.bitstampWrapper.balance();
     return ret.body;
   }
@@ -69,11 +72,10 @@ class BitstampHandler {
        * @param {string} params.requestId - internal request id
        */
   async buyImmediateOrCancel(params) {
-    const currencyPair = (!params.currencyPair) ? CurrencyPairs.btcUsd : CurrencyPairs[params.currencyPair];
     logger.debug('sending buy immediate or cancel order request');
 
     return await this.sendOrder('buy',
-      { amount: params.amount, price: params.price, currencyPair: currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId : params.requestId });
+      { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId: params.requestId });
   }
 
   /**
@@ -86,10 +88,9 @@ class BitstampHandler {
        * @param {string} params.requestId - internal request id
        */
   async sellImmediateOrCancel(params) {
-    const currencyPair = (!params.currencyPair) ? CurrencyPairs.btcUsd : CurrencyPairs[params.currencyPair];
     logger.debug('sending sell immediate or cancel order request');
     return await this.sendOrder('sell',
-      { amount: params.amount, price: params.price, currencyPair: currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId : params.requestId });
+      { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId: params.requestId });
   }
 
   /**
@@ -101,44 +102,50 @@ class BitstampHandler {
        * @param {string} params.requestId - internal request id
        */
   async sellLimit(params) {
-    const currencyPair = (!params.currencyPair) ? CurrencyPairs.btcUsd : CurrencyPairs[params.currencyPair];
     logger.debug('sending sell limit order request');
     return await this.sendOrder('sell',
-      { amount: params.amount, price: params.price, currencyPair: currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null ,  requestId : params.requestId });
+      { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null, requestId: params.requestId });
   }
 
 
   /**
-       * a make buy order request being sent
-       * @param {object} params
-       * @param {string} params.amount - (double as string) how many coins should be bought
-       * @param {string} params.price -  (double as string) the price per single coin
-       * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
-       * @param {string} params.requestId - internal request id
-       */
+   * a make buy order request being sent
+   * @param {object} params
+   * @param {string} params.amount - (double as string) how many coins should be bought
+   * @param {string} params.price -  (double as string) the price per single coin
+   * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
+   * @param {string} params.requestId - internal request id
+   */
   buyLimit(params) {
-    const currencyPair = (!params.currencyPair) ? CurrencyPairs.btcUsd : CurrencyPairs[params.currencyPair];
     logger.debug('sending buy limit order request');
     return this.sendOrder('buy',
-      { amount: params.amount, price: params.price, currencyPair: currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null,  requestId : params.requestId  });
+      { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null, requestId: params.requestId });
   }
 
   async sendOrder(type, params) {
     let result = null;
 
+    let pair = this.balanceManager.getBalance(params.currencyPair.split('-'));
+
     getEventQueue().sendNotification(Notifications.AboutToSendToExchange,
-      { requestId : params.requestId,
-        amount : params.amount,
+      {
+        requestId: params.requestId,
+        amount: params.amount,
         price: params.price,
         currencyPair: params.currencyPair,
-        exchange : 'bitstamp'
+        exchange: 'bitstamp',
+        balance1: pair[0],
+        balance2: pair[1]
       });
 
+
+    const currencyPair = (!params.currencyPair) ? PairsTo.btcUsd : PairsTo[params.currencyPair];
+
     if (type === 'sell') {
-      result = await this.bitstampWrapper.sellLimitOrder(params.amount, params.price, params.currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
+      result = await this.bitstampWrapper.sellLimitOrder(params.amount, params.price, currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
     }
     else {
-      result = await this.bitstampWrapper.buyLimitOrder(params.amount, params.price, params.currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
+      result = await this.bitstampWrapper.buyLimitOrder(params.amount, params.price, currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
     }
 
     if (!result) {
@@ -154,7 +161,8 @@ class BitstampHandler {
       price: result.body.price,
       type: type,
       requestId: params.requestId,
-      transactions : []
+      transactions: [],
+      currencyPair: params.currencyPair
     });
     return { status_code: Status.Success, status: returnMessages.OrderSent, orderId: transactionId };
   }
@@ -170,9 +178,10 @@ class BitstampHandler {
        * @param {string} params.requestId - internal request id
        */
 
-  login (params) {
+  login(params) {
     this.bitstampWrapper.setCredentials(params.key, params.secret, params.clientId);
-    return this.getUserAccountData(params.requestId);
+    this.getUserAccountData(params.requestId).then(data => { this.balanceManager.updateAllBalance(data); })
+      .then( () => getEventQueue().sendBalance('bitstamp', this.balanceManager.getAllBalance()));
   }
 
   /**
@@ -190,8 +199,11 @@ class BitstampHandler {
     await this.bitstampWrapper.cancelOrder(id);
   }
 
-}
+  getBalance(assetPair) {
+    return this.balanceManager.getBalance(assetPair.split('-'));
+  }
 
+}
 
 let bitstampHandler;
 

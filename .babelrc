@@ -26,7 +26,8 @@
                     "TickerStream" : "./src/server/thirdParty/bitstamp/streams/TickerStream",
                     "status" : "./src/utils/status",
                     "eventQueue" : "./src/utils/eventQueue",
-                    "notifications" : "./src/utils/notifications"
+                    "notifications" : "./src/utils/notifications",
+                    "moduleInfo" : "./src/utils/moduleInfo"
                     
                 }
             }

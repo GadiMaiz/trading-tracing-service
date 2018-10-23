@@ -67,13 +67,10 @@ describe('all tests', () => {
   describe('bitstampHandler module tests', () => {
 
     it('getUserAccountData valid request', async () => {
-      console.log('XXXXX0');
       let bitstampWrapperMock = new BitstampWrapperMock();
       let bitstampOrderTracerMock = new BitstampOrderTracerMock();
       let bitstampHandler = new BitstampHandler(null, bitstampWrapperMock, bitstampOrderTracerMock);
       let ret = await bitstampHandler.getUserAccountData();
-      console.log('XXXXX1 ' + ret);
-      console.log('XXXXX2 ' + json1.body);
       chai.expect(ret).to.equal(json1.body);
     });
 

@@ -13,7 +13,7 @@ class HandlerDelegator {
      */
   login(exchange, credentials) {
     const getInstance = require(Exchanges[exchange]);
-    return  getInstance(credentials).login(credentials);
+    return getInstance(credentials).login(credentials);
     // return { status: returnMessages.Success };
   }
 
@@ -23,7 +23,7 @@ class HandlerDelegator {
      */
   getUserAccountData(exchange, requestId) {
     const getInstance = require(Exchanges[exchange]);
-    return  getInstance().getUserAccountData(requestId);
+    return getInstance().getUserAccountData(requestId);
   }
 
   /**
@@ -64,6 +64,11 @@ class HandlerDelegator {
   buyLimit(exchange, params) {
     const getInstance = require(Exchanges[exchange]);
     return getInstance().buyLimit(params);
+  }
+
+  getBalance(exchange, assetPair) {
+    const getInstance = require(Exchanges[exchange]);
+    return getInstance().getBalance(assetPair);
   }
 }
 

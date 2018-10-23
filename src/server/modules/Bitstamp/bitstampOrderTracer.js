@@ -4,7 +4,7 @@ import logger from 'logger';
 import { Status, returnMessages } from 'status';
 // import Currency from './currencyPairs';
 
-import { Notifications }  from  'notifications';
+import { Notifications } from 'notifications';
 const getEventQueue = require('eventQueue');
 
 
@@ -20,7 +20,7 @@ class BitstampOrderTracer {
      * @param {integer} params.oldLimit - millisecond
      * @param {object} tickerStream - it is here for testing purposes, to test the module a mock should be passed
      */
-  constructor(bitstampWrapper, params, tickerStream = null) {
+  constructor(bitstampWrapper, params, balanceManager, tickerStream = null) {
     // data members
     this.openOrders = {};
     this.bitstampWrapper = bitstampWrapper;
@@ -28,13 +28,14 @@ class BitstampOrderTracer {
     this.tickerStreamTopic = this.tickerStream.subscribe();
     this.timeout = params.periodToCheck; // will be taken form configuration file
     this.oldLimit = params.oldLimit;
+    this.balanceManager = balanceManager;
 
 
     // functionality
     this.tickerStream.on('connected', () => console.log('tickerStream is connected'));
     this.tickerStream.on('disconnected', () => console.log('tickerStream is disconnected'));
 
-    this.tickerStream.on(this.tickerStreamTopic, data => {
+    this.tickerStream.on(this.tickerStreamTopic, async data => {
       if (!data) {
         logger.error('something went wrong, order stream was triggered without data');
       }
@@ -46,30 +47,46 @@ class BitstampOrderTracer {
       if (order) {
         if (order.type === 'buy') {
           logger.info('bought ' + data.amount_str + ' for price: ' + data.price_str);
+          // this.balanceManager.addToBalance(pair[0], data.amount_str);
+          // this.balanceManager.subtractFromBalance(pair[1], data.cost);
         }
         else {
           logger.info('sold ' + data.amount_str + ' for price: ' + data.price_str);
+          // this.balanceManager.subtractFromBalance(pair[0], data.amount_str);
+          // this.balanceManager.addToBalance(pair[1], data.cost);
         }
-
-        order.transactions.push( { price : data.price , amount : data.amount } );
+        await this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body) );
+        let balances = this.balanceManager.getBalance(order.currencyPair.split('-'));
+        
+        order.transactions.push({ price: data.price, amount: data.amount });
         order.amount -= parseFloat(data.amount);
         getEventQueue().sendNotification(
           Notifications.Update,
-          { requestId : order.requestId,
-            exchangeOrderId : order.bitstampOrderId,
-            amount : data.amount,
-            price : data.price,
-            amountLeft : order.amount,
-            exchange : 'bitstamp' });
+          {
+            requestId: order.requestId,
+            exchangeOrderId: order.bitstampOrderId,
+            amount: data.amount,
+            price: data.price,
+            amountLeft: order.amount,
+            exchange: 'bitstamp',
+            balance1: balances[0],
+            balance2: balances[1]
+          });
+        
+        getEventQueue().sendBalance('bitstamp', this.balanceManager.getAllBalance());
+        
         if (order.amount === 0) {
           const average = this.calcAveragePrice(order.transactions);
           // here we should send a notification to kafka
-          getEventQueue().sendNotification(Notifications.Finished, 
-            { requestId : order.requestId,
-              exchangeOrderId : order.bitstampOrderId,
-              price  : average.price,
-              amount : average.amount,
-              exchange : 'bitstamp'
+          getEventQueue().sendNotification(Notifications.Finished,
+            {
+              requestId: order.requestId,
+              exchangeOrderId: order.bitstampOrderId,
+              price: average.price,
+              amount: average.amount,
+              exchange: 'bitstamp',
+              balance1: balances[0],
+              balance2: balances[1]
             });
           logger.info('request ' + order.requestId + ' successfully fulfilled !');
           delete this.openOrders[order.bitstampOrderId];
@@ -121,20 +138,24 @@ class BitstampOrderTracer {
           }
           catch (err) {
             getEventQueue().sendNotification(Notifications.Error,
-              { error: err,
-                requestId : this.openOrders[bitstampOrderId].requestId,
-                exchangeOrderId : bitstampOrderId
+              {
+                error: err,
+                requestId: this.openOrders[bitstampOrderId].requestId,
+                exchangeOrderId: bitstampOrderId
               });
             logger.error('requesting order status for order id ' + bitstampOrderId + 'err = ' + err);
             return this.openOrders;
           }
+          let balances = this.balanceManager.getBalance(this.openOrders[bitstampOrderId].currencyPair.split('-'));
           if (!result) {
             logger.error('order status request of order ' + bitstampOrderId + ' has failed');
             getEventQueue().sendNotification(Notifications.Error, {
               errorMessage: returnMessages.RequestFailed,
-              errorCode : Status.RequestFailed,
-              requestId : this.openOrders[bitstampOrderId].requestId,
-              exchangeOrderId : bitstampOrderId,
+              errorCode: Status.RequestFailed,
+              requestId: this.openOrders[bitstampOrderId].requestId,
+              exchangeOrderId: bitstampOrderId,
+              balance1: balances[0],
+              balance2: balances[1]
             });
             delete this.openOrders[bitstampOrderId];
             return this.openOrders;
@@ -146,19 +167,24 @@ class BitstampOrderTracer {
           else if (result.body.status === 'Canceled') {
             getEventQueue().sendNotification(Notifications.Cancelled,
               {
-                exchange : 'bitstamp',
-                requestId : this.openOrders[bitstampOrderId].requestId,
-                exchangeOrderId : bitstampOrderId,
+                exchange: 'bitstamp',
+                requestId: this.openOrders[bitstampOrderId].requestId,
+                exchangeOrderId: bitstampOrderId,
+                balance1: balances[0],
+                balance2: balances[1]
               });
             logger.info('request with id ' + this.openOrders[bitstampOrderId].requestId + ' was CANCELED');
             delete this.openOrders[bitstampOrderId];
           }
           else if (result.body.status === 'Finished') { // TODO here we should parse the body to get transaction history;
+            this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body) );
             getEventQueue().sendNotification(Notifications.Finished,
               {
-                exchange : 'bitstamp',
-                requestId : this.openOrders[bitstampOrderId].requestId,
-                exchangeOrderId : bitstampOrderId,
+                exchange: 'bitstamp',
+                requestId: this.openOrders[bitstampOrderId].requestId,
+                exchangeOrderId: bitstampOrderId,
+                balance1: balances[0],
+                balance2: balances[1]
               });
             logger.info('request with id ' + this.openOrders[bitstampOrderId].requestId + ' was FINISHED');
             delete this.openOrders[bitstampOrderId];
@@ -196,11 +222,11 @@ class BitstampOrderTracer {
   calcAveragePrice(transactions) {
     let amount = 0.0;
     let price = 0.0;
-    transactions.forEach( transaction => {
+    transactions.forEach(transaction => {
       amount += transaction.amount;
       price += transaction.price * transaction.amount;
     });
-    return { amount : amount, price: price / amount };
+    return { amount: amount, price: price / amount };
   }
 
 }
