@@ -35,6 +35,12 @@
             "moduleInfo" : [
                 "./src/utils/moduleInfo"
             ],
+            "balanceManager" : [
+                "./src/utils/balanceManager"
+            ],
+            "orderTypes" : [
+                "./src/utils/orderTypes"
+            ],
         }
     },
     "exclude": [

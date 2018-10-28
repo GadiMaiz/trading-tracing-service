@@ -1,4 +1,4 @@
-let kafka = require('kafka-node');
+const kafka = require('kafka-node');
 import logger from 'logger';
 import { Status, returnMessages } from 'status';
 import moment from 'moment';
@@ -6,12 +6,13 @@ import { Module } from 'moduleInfo';
 
 
 // configurations:
-let ORDERS_TOPIC = 'orders';
-let NOTIFICATION_TOPIC = 'notifications';
-let BALANCES_TOPIC = 'balances';
-let PARTITION = 0;
-let PORT = '2181';
-let URL = 'localhost';
+const ORDERS_TOPIC = 'orders';
+const NOTIFICATION_TOPIC = 'notifications';
+const BALANCES_TOPIC = 'balances';
+const TRADES_TOPIC = 'trades';
+const PARTITION = 0;
+const PORT = '2181';
+const URL = 'localhost';
 
 
 let KeyedMessage = kafka.KeyedMessage;
@@ -20,6 +21,7 @@ class EventQueue {
     // ////// notifications producer initialization
 
     this.client = new kafka.Client(URL + ':' + PORT);
+    this.client2 = new kafka.Client(URL + ':' + PORT);
     this.notificationProducer = new kafka.Producer(this.client);
 
     this.notificationProducer.on('ready', function () {
@@ -35,8 +37,22 @@ class EventQueue {
     });
 
 
-    this.balanceProducer = new kafka.Producer(this.client);
+    this.tradesProducer = new kafka.Producer(this.client);
 
+
+    this.tradesProducer.on('ready', function () {
+      this.client.refreshMetadata([TRADES_TOPIC], (err) => {
+        if (err) {
+          console.warn('Error refreshing kafka metadata', err);
+        }
+      });
+    });
+
+    this.tradesProducer.on('error', function (err) {
+      console.log('error', err);
+    });
+
+    this.balanceProducer = new kafka.Producer(this.client2);
 
     this.balanceProducer.on('ready', function () {
       this.client.refreshMetadata([BALANCES_TOPIC], (err) => {
@@ -72,7 +88,7 @@ class EventQueue {
         if (err) {
           return console.error(err);
         }
-        let min = Math.min.apply(null, offsets[topic.topic][topic.partition]);
+        const min = Math.min.apply(null, offsets[topic.topic][topic.partition]);
         this.consumer.setOffset(topic.topic, topic.partition, min);
       });
     });
@@ -81,7 +97,7 @@ class EventQueue {
   sendNotification(notificationType, parameters) {
     parameters['eventTimeStamp'] = moment(Date.now()).format('YYYY-MM-DD HH:mm:ss');
     parameters['sendingModule'] = Module.name;
-    let keyedMessage = new KeyedMessage(notificationType, JSON.stringify(parameters));
+    const keyedMessage = new KeyedMessage(notificationType, JSON.stringify(parameters));
     this.notificationProducer.send([{ topic: NOTIFICATION_TOPIC, partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
       if (err) {
         logger.error(err);
@@ -93,8 +109,20 @@ class EventQueue {
   }
 
   sendBalance(exchange, parameters) {
-    let keyedMessage = new KeyedMessage(exchange, JSON.stringify(parameters));
-    this.notificationProducer.send([{ topic:BALANCES_TOPIC, partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
+    const keyedMessage = new KeyedMessage(exchange, JSON.stringify(parameters));
+    this.balanceProducer.send([{ topic:BALANCES_TOPIC, partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
+      if (err) {
+        logger.error(err);
+      }
+      else {
+        logger.info(JSON.stringify(result));
+      }
+    });
+  }
+
+  sendTrade(exchange, parameters) {
+    const keyedMessage = new KeyedMessage(exchange, JSON.stringify(parameters));
+    this.tradesProducer.send([{ topic:TRADES_TOPIC, partition: PARTITION, messages: [keyedMessage] }], function (err, result) {
       if (err) {
         logger.error(err);
       }

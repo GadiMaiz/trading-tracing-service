@@ -5,7 +5,6 @@ class BalanceManager {
     this.currencyDictionary = currencyDictionary;
 
     this.balances = {};
-    this.isInitialized = false;
   }
 
   getAllBalance() {
@@ -28,22 +27,26 @@ class BalanceManager {
   updateAllBalance(balancesList) {
     Object.keys(balancesList).forEach((key) => {
       try {
-        let newKey = this.currencyDictionary[key];
+        const newKey = this.currencyDictionary[key];
         this.balances[newKey] = Number(balancesList[key]);
       }
       catch (error) {
-        // console.log('x');
+        console.log('error = ' + error);
       }
     });
   }
 
   addToBalance(currency, amount) {
     this.balances[currency] = this.balances[currency] + Number(amount);
+    this.balances[currency + '_ALL'] = this.balances[currency + '_ALL'] + Number(amount);
   }
 
   subtractFromBalance(currency, amount) {
     this.balances[currency] = this.balances[currency] - Number(amount);
+    this.balances[currency + '_ALL'] = this.balances[currency + '_ALL'] - Number(amount);
   }
+
+  
 }
 
 export default BalanceManager;

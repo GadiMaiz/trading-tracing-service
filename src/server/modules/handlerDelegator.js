@@ -11,9 +11,9 @@ class HandlerDelegator {
      * @param {string} exchange  - the name of the exchange that is being logged in to
      * @param {object} credentials - the credentials needed to login to the exchange
      */
-  login(exchange, credentials) {
+  async login(exchange, credentials) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance(credentials).login(credentials);
+    return await getInstance(credentials).login(credentials);
     // return { status: returnMessages.Success };
   }
 

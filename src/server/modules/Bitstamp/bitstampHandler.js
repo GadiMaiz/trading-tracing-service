@@ -5,7 +5,7 @@ import { Notifications } from 'notifications';
 import { returnMessages, Status } from 'status';
 import BitstampOrderTracer from './bitstampOrderTracer';
 import { PairsTo, currencyDictionary } from './currencyPairs';
-import BalanceManager from '../../../utils/balanceManager';
+import BalanceManager from 'balanceManager';
 
 
 
@@ -30,7 +30,9 @@ class BitstampHandler {
        * @param {string} props.clientId
        */
 
-  constructor(params = null, bitstampWrapper = null, bitstampOrderTracer = null) {
+  constructor(params = null, eventQueue = null,  bitstampWrapper = null, bitstampOrderTracer = null ) {
+    this.balanceManager = new BalanceManager(currencyDictionary);
+
     if (!bitstampWrapper && !bitstampOrderTracer) {
 
       this.bitstampWrapper = new Bitstamp({
@@ -40,7 +42,6 @@ class BitstampHandler {
         timeout: BITSTAMP_REQUEST_TIMEOUT,
         rateLimit: true // turned on by default
       });
-      this.balanceManager = new BalanceManager(currencyDictionary);
       this.bitstampOrderTracer = new BitstampOrderTracer(this.bitstampWrapper, { periodToCheck: PERIOD_TO_CHECK, oldLimit: OLD_LIMIT }, this.balanceManager);
     }
     else if (bitstampWrapper && bitstampOrderTracer) {
@@ -50,14 +51,15 @@ class BitstampHandler {
     else {
       throw new Error('could not construct BitstampHandler, input parameters are not valid');
     }
+    this.eventQueue = eventQueue;
   }
 
   /**
-       * the function returnes user data returned from the client
+       * the function returns user data returned from the client
        */
   async getUserAccountData(requestId) {
     logger.debug('about to send get user data request to bitstamp requestId');
-    getEventQueue().sendNotification(Notifications.AboutToSendToExchange, { requestId: requestId, exchange: 'bitstamp' });
+    this.eventQueue.sendNotification(Notifications.AboutToSendToExchange, { requestId: requestId, exchange: 'bitstamp' });
     const ret = await this.bitstampWrapper.balance();
     return ret.body;
   }
@@ -125,9 +127,9 @@ class BitstampHandler {
   async sendOrder(type, params) {
     let result = null;
 
-    let pair = this.balanceManager.getBalance(params.currencyPair.split('-'));
+    const pair = this.balanceManager.getBalance(params.currencyPair.split('-'));
 
-    getEventQueue().sendNotification(Notifications.AboutToSendToExchange,
+    this.eventQueue.sendNotification(Notifications.AboutToSendToExchange,
       {
         requestId: params.requestId,
         amount: params.amount,
@@ -178,10 +180,10 @@ class BitstampHandler {
        * @param {string} params.requestId - internal request id
        */
 
-  login(params) {
+  async login(params) {
     this.bitstampWrapper.setCredentials(params.key, params.secret, params.clientId);
-    this.getUserAccountData(params.requestId).then(data => { this.balanceManager.updateAllBalance(data); })
-      .then( () => getEventQueue().sendBalance('bitstamp', this.balanceManager.getAllBalance()));
+    await this.getUserAccountData(params.requestId).then(data => { this.balanceManager.updateAllBalance(data); })
+      .then( () => this.eventQueue.sendBalance('bitstamp', this.balanceManager.getAllBalance()));
   }
 
   /**
@@ -217,7 +219,7 @@ const getInstance = (parameters) => {
     if (!parameters) {
       throw { status: Status.NotLoggedIn, message: returnMessages.NotLoggedIn };
     }
-    bitstampHandler = new BitstampHandler(parameters);
+    bitstampHandler = new BitstampHandler(parameters, getEventQueue());
   }
   return bitstampHandler;
 };

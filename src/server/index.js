@@ -5,8 +5,8 @@ import usersRouter from './routes/users';
 import logger from 'logger';
 import OrderExecuter from './modules/orderExecuter';
 
-let orderExecuter = new (OrderExecuter);
-let getEventQueue = require('eventQueue');
+const orderExecuter = new OrderExecuter();
+const  getEventQueue = require('eventQueue');
 getEventQueue(orderExecuter);
 
 const server = express();

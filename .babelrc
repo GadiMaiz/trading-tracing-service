@@ -27,7 +27,9 @@
                     "status" : "./src/utils/status",
                     "eventQueue" : "./src/utils/eventQueue",
                     "notifications" : "./src/utils/notifications",
-                    "moduleInfo" : "./src/utils/moduleInfo"
+                    "moduleInfo" : "./src/utils/moduleInfo",
+                    "balanceManager" : "./src/utils/balanceManager",
+                    "orderTypes" : "./src/utils/orderTypes"
                     
                 }
             }

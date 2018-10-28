@@ -1,8 +1,8 @@
-import { orderTypes } from '../../utils/orderTypes';
+import { orderTypes } from 'orderTypes';
 import { Status, returnMessages } from 'status';
 import logger from 'logger';
 import Handler from 'handlerDelegator';
-import { Notifications } from '../../utils/notifications';
+import { Notifications } from 'notifications';
 
 
 
@@ -97,7 +97,7 @@ class OrderExecuter {
   async getUserData(params) {
     const exchange = params.exchange.toLowerCase();
     if (!exchange) {
-      let err = new Error(returnMessages.InputParametersMissing);
+      const err = new Error(returnMessages.InputParametersMissing);
       logger.error(err);
     }
     const requestId = params.requestId;
@@ -146,25 +146,23 @@ class OrderExecuter {
 
   async ImmediateOrCancelRequest(type, params) {
     const exchange = params.exchange.toLowerCase();
-    
+
     const amount = params.amount;
     const price = params.price;
 
-    let pair = handler.getBalance(exchange, params.currencyPair);
-
-    if (!amount || !price || !params.exchange || !params.requestId) {
+    if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
           requestId: params.requestId,
           exchange: exchange,
           errorCode: Status.InputParametersMissing,
           errorMessage: returnMessages.InputParametersMissing,
-          balance1: pair.first,
-          balance2: pair.second
         });
-      logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
+      logger.error('some of the input parameters are missing (amount, price, exchange, requestId, currencyPair)');
       return;
     }
+    let pair = handler.getBalance(exchange, params.currencyPair);
+
     let retVal = null;
     try {
       if (type === 'sellImmediateOrCancel') {
@@ -203,13 +201,13 @@ class OrderExecuter {
 
   async timedRequestMaking(type, params) {
     const exchange = params.exchange.toLowerCase();
-    
+
     const amount = params.amount;
     const price = params.price;
 
     let pair = handler.getBalance(exchange, params.currencyPair);
 
-    if (!amount || !price || !params.exchange || !params.requestId) {
+    if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
           requestId: params.requestId,
