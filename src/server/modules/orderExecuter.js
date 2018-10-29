@@ -149,7 +149,8 @@ class OrderExecuter {
 
     const amount = params.amount;
     const price = params.price;
-
+    console.log('XXXXXXXXXXXXXXXX amount = ' + amount  + ' price = ' + price + ' params.exchange = ' + params.exchange +
+                                     ' params.requestId + ' + params.requestId + ' params.currencyPair = ' + params.currencyPair);
     if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
