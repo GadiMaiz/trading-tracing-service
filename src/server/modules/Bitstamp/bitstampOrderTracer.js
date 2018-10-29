@@ -4,7 +4,7 @@ import logger from 'logger';
 import { Status, returnMessages } from 'status';
 // import Currency from './currencyPairs';
 
-import { Notifications } from 'notifications';
+import { Notifications } from 'smart-trader-common';
 const getEventQueue = require('eventQueue');
 
 

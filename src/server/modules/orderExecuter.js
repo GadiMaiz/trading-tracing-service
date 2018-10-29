@@ -1,8 +1,7 @@
-import { orderTypes } from 'orderTypes';
+import { orderTypes, Notifications } from 'smart-trader-common';
 import { Status, returnMessages } from 'status';
 import logger from 'logger';
 import Handler from 'handlerDelegator';
-import { Notifications } from 'notifications';
 
 
 

@@ -53,6 +53,7 @@
     "moment": "^2.22.2",
     "pusher-js": "^4.3.1",
     "request": "^2.88.0",
+    "smart-trader-common": "git+https://github.com/bitmain-israel/smart-trader-common.git",
     "winston": "^3.0.0"
   }
 }

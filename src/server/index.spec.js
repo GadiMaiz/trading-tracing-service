@@ -8,7 +8,7 @@ import BitstampOrderTracer from './modules/bitstamp/bitstampOrderTracer';
 import { currencyDictionary } from './modules/bitstamp/currencyPairs';
 import { BitstampWrapperMock, BitstampOrderTracerMock, TickerStreamMock, FutureMock } from './tests/mocks';
 
-import { Notifications } from 'notifications';
+import { Notifications } from 'smart-trader-common';
 import BalanceManager from 'balanceManager';
 
 const getBalanceRet = { body: { username: 'userX', balance: '100000' } };

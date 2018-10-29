@@ -1,7 +1,7 @@
 import Bitstamp from 'Bitstamp';
 import getEventQueue from 'eventQueue';
 import logger from 'logger';
-import { Notifications } from 'notifications';
+import { Notifications } from 'smart-trader-common';
 import { returnMessages, Status } from 'status';
 import BitstampOrderTracer from './bitstampOrderTracer';
 import { PairsTo, currencyDictionary } from './currencyPairs';
