@@ -7,19 +7,6 @@ import BitstampOrderTracer from './bitstampOrderTracer';
 import { PairsTo, currencyDictionary } from './currencyPairs';
 import BalanceManager from 'balanceManager';
 
-
-
-
-
-
-
-// global const shell be moved to configuration
-const BITSTAMP_REQUEST_TIMEOUT = 5000;
-
-const OLD_LIMIT = 5000;
-const PERIOD_TO_CHECK = 1500;
-// /// global currency pairs
-
 class BitstampHandler {
 
   /**
@@ -30,19 +17,20 @@ class BitstampHandler {
        * @param {string} props.clientId
        */
 
-  constructor(params = null, eventQueue = null,  bitstampWrapper = null, bitstampOrderTracer = null ) {
+  constructor(params, credentials, eventQueue,  bitstampWrapper, bitstampOrderTracer) {
+    this.periodToCheck = params.periodToCheck;
     this.balanceManager = new BalanceManager(currencyDictionary);
 
     if (!bitstampWrapper && !bitstampOrderTracer) {
 
       this.bitstampWrapper = new Bitstamp({
-        key: params.key,
-        secret: params.secret,
-        clientId: params.clientId,
-        timeout: BITSTAMP_REQUEST_TIMEOUT,
+        key: credentials.key,
+        secret: credentials.secret,
+        clientId: credentials.clientId,
+        timeout: params.bitstampRequestTimeout,
         rateLimit: true // turned on by default
       });
-      this.bitstampOrderTracer = new BitstampOrderTracer(this.bitstampWrapper, { periodToCheck: PERIOD_TO_CHECK, oldLimit: OLD_LIMIT }, this.balanceManager);
+      this.bitstampOrderTracer = new BitstampOrderTracer(this.bitstampWrapper, { periodToCheck: this.periodToCheck, oldLimit: params.oldLimit }, this.balanceManager);
     }
     else if (bitstampWrapper && bitstampOrderTracer) {
       this.bitstampWrapper = bitstampWrapper;
@@ -126,9 +114,8 @@ class BitstampHandler {
 
   async sendOrder(type, params) {
     let result = null;
-
-    const pair = this.balanceManager.getBalance(params.currencyPair.split('-'));
-
+    let currArr = params.currencyPair.split('-');
+    const pair = this.balanceManager.getBalance(currArr);
     this.eventQueue.sendNotification(Notifications.AboutToSendToExchange,
       {
         requestId: params.requestId,
@@ -136,8 +123,8 @@ class BitstampHandler {
         price: params.price,
         currencyPair: params.currencyPair,
         exchange: 'bitstamp',
-        balance1: pair[0],
-        balance2: pair[1]
+        currencyFrom: pair[currArr[0]],
+        currencyTo: pair[currArr[1]]
       });
 
 
@@ -155,7 +142,7 @@ class BitstampHandler {
       throw { status_code: Status.Error, status: returnMessages.Error, message: 'request to bitstamp failed' };
     }
     const transactionId = result.body.id;
-    logger.debug(type + ' order ' + transactionId + ' was sent to the exchange, about to insert the order to tracing list');
+    logger.debug('%s order %s was sent to the exchange, about to insert the order to tracing list', type, transactionId);
 
     await this.bitstampOrderTracer.addNewTransaction({
       bitstampOrderId: transactionId,
@@ -202,7 +189,10 @@ class BitstampHandler {
   }
 
   getBalance(assetPair) {
-    return this.balanceManager.getBalance(assetPair.split('-'));
+    console.log(assetPair);
+    let tmp = this.balanceManager.getBalance(assetPair.split('-'));
+    console.log('TMP = %o',tmp);
+    return tmp;
   }
 
 }
@@ -214,12 +204,12 @@ let bitstampHandler;
  * if the object already exist returnes the instance else creates the object and retunes the instance
  * @param {object} parameters -  being dligated to the BitstampHandler constructor
  */
-const getInstance = (parameters) => {
+const getInstance = (credentials, params) => {
   if (!bitstampHandler) {
-    if (!parameters) {
+    if (!credentials) {
       throw { status: Status.NotLoggedIn, message: returnMessages.NotLoggedIn };
     }
-    bitstampHandler = new BitstampHandler(parameters, getEventQueue());
+    bitstampHandler = new BitstampHandler(params, credentials, getEventQueue());
   }
   return bitstampHandler;
 };

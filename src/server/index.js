@@ -5,33 +5,40 @@ import usersRouter from './routes/users';
 import logger from 'logger';
 import OrderExecuter from './modules/orderExecuter';
 
-const orderExecuter = new OrderExecuter();
-const  getEventQueue = require('eventQueue');
-getEventQueue(orderExecuter);
+class Server {
+  constructor(params) {
+    let orderExecuter = new OrderExecuter(params);
+    const  getEventQueue = require('eventQueue');
+    getEventQueue(params, (data) => orderExecuter.execute(data));
 
-const server = express();
-server.use(express.json());
+    this.server = express();
+    this.server.use(express.json());
 
-server.use('/', indexRouter);
-server.use('/users', usersRouter);
+    this.server.use('/', indexRouter);
+    this.server.use('/users', usersRouter);
 
-// catch 404 and forward to error handler
-server.use(function(req, res, next) {
-  next(createError(404));
-});
+    // catch 404 and forward to error handler
+    this.server.use(function(req, res, next) {
+      next(createError(404));
+    });
 
-// error handler
-server.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  logger.error(err.message);
-  res.locals.message = err.message;
-  res.locals.error = server.get('env') === 'development' ? err : {};
+    // error handler
+    this.server.use(function(err, req, res, next) {
+      // set locals, only providing error in development
+      logger.error(err.message);
+      res.locals.message = err.message;
+      res.locals.error =  this.server.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.end(err.message);
-});
+      // render the error page
+      res.status(err.status || 500);
+      res.end(err.message);
+    });
+  }
+  getServer() {
+    return this.server;
+  }
+}
 
-export default server;
+export default Server;
 
 

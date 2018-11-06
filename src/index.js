@@ -1,12 +1,19 @@
 import http from 'http';
-
+import nodeConfigModule from 'node-config-module';
 // Set process name
 process.title = ['Trading-Tracing service']; // TO-DO: change to your process real name.
 
-import app from 'server';
+import Server from 'server';
 
 /**
  * Create HTTP server.
  */
-const server = http.createServer(app).listen(3000);
+
+const defaultConf = {};
+nodeConfigModule.init(defaultConf, null, ()=>{});
+let conf = nodeConfigModule.getConfig();
+
+const serverApp = new Server(conf);
+
+const server = http.createServer(serverApp.getServer()).listen(3000);
 export default server;

@@ -1,9 +1,9 @@
 import Exchanges from './exchanges.js';
-import { returnMessages } from 'status';
 class HandlerDelegator {
 
   // initialize all handlers
-  constructor() {
+  constructor(params) {
+    this.params = params;
   }
 
   /**
@@ -13,7 +13,7 @@ class HandlerDelegator {
      */
   async login(exchange, credentials) {
     const getInstance = require(Exchanges[exchange]);
-    return await getInstance(credentials).login(credentials);
+    return await getInstance(credentials, this.params).login(credentials);
     // return { status: returnMessages.Success };
   }
 

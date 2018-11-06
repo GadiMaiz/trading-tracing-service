@@ -1,0 +1,12 @@
+{
+   "bitstampRequestTimeout" : 5000,
+   "oldLimit" : 5000,
+   "periodToCheck" : 1500,
+   "ordersTopic" : "orders",
+   "notificationsTopic" : "notifications",
+   "balancesTopic" : "balances",
+   "tradesTopic" : "trades",
+   "kafkaZookeeperPort" : "2181",
+   "kafkaZookeeperUrl" : "localhost",
+   "shouldWriteAllTrades" : false
+}

@@ -15,7 +15,6 @@ const getBalanceRet = { body: { username: 'userX', balance: '100000' } };
 const validRetVal = { body: { status_code: 0, status: 'order sent', orderId: '2088374564' } };
 const internalTransaction = { currencyPair: 'BTC-USD', bitstampOrderId: '2092218561', amount: '7358.93', price: '0.06286195', type: 'buy', requestId: '1111111' };
 
-import { EventQueue } from 'eventQueue';
 
 
 
@@ -454,7 +453,6 @@ describe('all tests', () => {
         'USD_ALL'  : 10051
       };
       balanceManager.updateAllBalance(balances);
-      // console.log(JSON.stringify(balanceManager.balances));
       chai.expect(balanceManager.balances).to.deep.equal(expectedResult);
     });
 
@@ -481,7 +479,6 @@ describe('all tests', () => {
       };
       balanceManager.updateAllBalance(balances);
       balanceManager.addToBalance('BTC', 1.01);
-      console.log(JSON.stringify(balanceManager.balances));
       chai.expect(balanceManager.getAllBalance()).to.deep.equal(expectedResult);
     });
 
@@ -508,7 +505,6 @@ describe('all tests', () => {
       };
       balanceManager.updateAllBalance(balances);
       balanceManager.subtractFromBalance('BTC', 1.01);
-      console.log(JSON.stringify(balanceManager.balances));
       chai.expect(balanceManager.getAllBalance()).to.deep.equal(expectedResult);
     });
   });

@@ -3,22 +3,20 @@ import { Status, returnMessages } from 'status';
 import logger from 'logger';
 import Handler from 'handlerDelegator';
 
-
-
-
-const handler = new Handler();
-
 const getEventQueue = require('eventQueue');
 
 class OrderExecuter {
 
+  constructor(params) {
+    this.handler = new Handler(params);
+  }
   /**
    * the function accept order object and executes the order requested
    * @param {object} order
    * @param {string} order.key - a numeric string that defined in orderTypes.js and represent the order type
    * @param {object} order.value - a json object that contains all the parameters for the order request
    */
-  async execute(order) {
+  execute(order) {
     const parameters = JSON.parse(order.value);
     getEventQueue().sendNotification(Notifications.ReceivedFromEventQueue,
       {
@@ -78,13 +76,13 @@ class OrderExecuter {
     const requestId = params.requestId;
 
     try {
-      await handler.login(exchange, { key, secret, clientId, requestId });
+      await this.handler.login(exchange, { key, secret, clientId, requestId });
       getEventQueue().sendNotification(Notifications.SuccessfullyLoggedInToExchange, { requestId: requestId, exchange: exchange });
-      logger.debug('successfully logged in to ' + exchange + ' exchange' + ' requestId = ' + requestId);
+      logger.debug('successfully logged in to exchange- %s requestId- %s', exchange, requestId);
     }
     catch (err) {
       getEventQueue().sendNotification(Notifications.Error, { requestId: requestId, exchange: exchange, errorMessage: 'cant login, possibly wrong credentials' });
-      logger.error('unable to login to ' + exchange + ' exchange, err =  ' + err + ' requestId = ' + requestId);
+      logger.error('unable to login to %s exchange, err = %s requestId = %s' , exchange, err, requestId);
     }
   }
 
@@ -101,13 +99,13 @@ class OrderExecuter {
     }
     const requestId = params.requestId;
     try {
-      const userData = await handler.getUserAccountData(exchange, requestId);
+      const userData = await this.handler.getUserAccountData(exchange, requestId);
       getEventQueue().sendNotification(Notifications.Success, { requestId: requestId, data: userData, exchange: exchange });
-      logger.debug('successfully sent get user data request requestId = ' + requestId);
+      logger.debug('successfully sent get user data request requestId = %s', requestId);
     }
     catch (err) {
       getEventQueue().sendNotification(Notifications.Error, { requestId: requestId, exchange: exchange, errorCode: err.statusCode, errorMessage: err.message });
-      logger.error('getUserData encountered an error : ' + JSON.stringify(err));
+      logger.error('getUserData encountered an error : %o', err);
     }
   }
 
@@ -148,8 +146,6 @@ class OrderExecuter {
 
     const amount = params.amount;
     const price = params.price;
-    console.log('XXXXXXXXXXXXXXXX amount = ' + amount  + ' price = ' + price + ' params.exchange = ' + params.exchange +
-                                     ' params.requestId + ' + params.requestId + ' params.currencyPair = ' + params.currencyPair);
     if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
@@ -161,40 +157,39 @@ class OrderExecuter {
       logger.error('some of the input parameters are missing (amount, price, exchange, requestId, currencyPair)');
       return;
     }
-    let pair = handler.getBalance(exchange, params.currencyPair);
-
+    let pair = ['',''];
     let retVal = null;
     try {
+      pair = this.handler.getBalance(exchange, params.currencyPair);
       if (type === 'sellImmediateOrCancel') {
-        retVal = await handler.sellImmediateOrCancel(exchange,
+        retVal = await this.handler.sellImmediateOrCancel(exchange,
           { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair });
       }
       else {
-        retVal = await handler.buyImmediateOrCancel(exchange,
+        retVal = await this.handler.buyImmediateOrCancel(exchange,
           { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair });
       }
-      pair = handler.getBalance(exchange, params.currencyPair);
-
+      pair = this.handler.getBalance(exchange, params.currencyPair);
       getEventQueue().sendNotification(Notifications.SentToExchange,
         {
           requestId: params.requestId,
           exchange: exchange,
           exchangeOrderId: retVal.orderId,
-          balance1: pair[0],
-          balance2: pair[1]
+          currencyFrom: pair[0],
+          currencyTo: pair[1]
         });
-      logger.debug('successfully sent ' + type + ' request requestId = ' + params.requestId);
+      logger.debug('successfully sent %s request requestId = %s', type, params.requestId);
     }
     catch (err) {
-      logger.error('an error occurred while executing ' + type + ' err = ' + JSON.stringify(err));
+      logger.error('an error occurred while executing %s err = %o', type, err);
       getEventQueue().sendNotification(Notifications.Error,
         {
           requestId: params.requestId,
           errorCode: err.statusCode,
           errorMessage: err.message,
           exchange: exchange,
-          balance1: pair[0],
-          balance2: pair[1]
+          currencyFrom: pair[0],
+          currencyTo: pair[1]
         });
     }
   }
@@ -205,7 +200,7 @@ class OrderExecuter {
     const amount = params.amount;
     const price = params.price;
 
-    let pair = handler.getBalance(exchange, params.currencyPair);
+    let pair = this.handler.getBalance(exchange, params.currencyPair);
 
     if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
@@ -214,38 +209,39 @@ class OrderExecuter {
           statusCode: Status.InputParametersMissing,
           returnMessage: returnMessages.InputParametersMissing,
           exchange: exchange,
-          balance1: pair.first,
-          balance2: pair.second
+          currencyFrom: pair.first,
+          currencyTo: pair.second
         });
       logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
       return;
     }
     try {
       if (type === 'timedBuyMaking') {
-        await handler.buyLimit(exchange,
+        await this.handler.buyLimit(exchange,
           { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
       }
       else {
-        await handler.sellLimit(exchange, { amount: amount, price: price });
+        await this.handler.sellLimit(exchange, 
+          { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
       }
 
-      let pair = handler.getBalance(exchange, params.currencyPair);
+      let pair = this.handler.getBalance(exchange, params.currencyPair);
       getEventQueue().sendNotification(Notifications.SentToEventQueue,
         {
           requestId: params.requestId,
           exchange: exchange,
-          balance1: pair.first,
-          balance2: pair.second
+          currencyFrom: pair.first,
+          currencyTo: pair.second
         });
-      logger.debug('successfully sent ' + type + ' request requestId = ' + params.requestId);
+      logger.debug('successfully sent %s request requestId = %s', type, params.requestId);
     }
     catch (err) {
-      logger.error('an error occurred while executing ' + type + ' err = ' + JSON.stringify(err));
+      logger.error('an error occurred while executing %s err = %o' , type, err);
       getEventQueue().sendNotification(Notifications.Error, {
         requestId: params.requestId,
         error: err, exchange: exchange,
-        balance1: pair.first,
-        balance2: pair.second
+        currencyFrom: pair.first,
+        currencyTo: pair.second
       });
     }
   }
