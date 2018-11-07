@@ -12,19 +12,7 @@ class BalanceManager {
   }
 
   getBalance(currencyList) {
-    // let ans = [];
-    // for (let iterator in currencyList) {
-    //   try {
-    //     // ans.push(this.balances[currencyList[iterator]]);
-    //     ans[currencyList[iterator]] = this.balances[currencyList[iterator]];
-    //   }
-    //   catch (error) {
-    //     ans[currencyList[iterator]] = 0;
-    //     logger.error('error getting balance :  %s', error);
-    //   }
-    // }
-    // return ans;
-    return currencyList.map((item) => { (this.balances[item]) ? this.balances[item] : 0; });
+    return currencyList.map((item) => { return (this.balances[item]) ? this.balances[item] : 0; });
   }
 
   updateAllBalance(balancesList) {

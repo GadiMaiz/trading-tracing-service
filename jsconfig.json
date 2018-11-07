@@ -17,12 +17,12 @@
             "handlerDelegator": [
                 "./src/server/modules/handlerDelegator"
             ],
-            "Bitstamp": [
-                "./src/server/thirdParty/bitstamp/Bitstamp"
-            ],
-            "TickerStream": [
-                "./src/server/thirdParty/bitstamp/streams/TickerStream"
-            ],
+            // "Bitstamp": [
+            //     "./src/server/thirdParty/bitstamp/Bitstamp"
+            // ],
+            // "TickerStream": [
+            //     "./src/server/thirdParty/bitstamp/streams/TickerStream"
+            // ],
             "status" : [
                 "./src/utils/status"
             ],

@@ -26,35 +26,24 @@ class OrderExecuter {
 
     switch (Number(order.key)) {
       case (orderTypes.getUserData):
-        console.log('getUserData');
+        logger.debug('getUserData request received');
         this.getUserData(parameters);
         break;
       case (orderTypes.login): {
-        console.log('login');
+        logger.debug('login request received');
         this.login(parameters);
         break;
       }
-      case (orderTypes.buyImmediateOrCancel):
-        console.log('buyImmediateOrCancel');
-        this.buyImmediateOrCancel(parameters);
+      case (orderTypes.ImmediateOrCancel):
+        logger.debug('%s ImmediateOrCancel request received',parameters.actionType);
+        this.ImmediateOrCancelRequest(parameters);
         break;
-      case (orderTypes.sellImmediateOrCancel):
-        console.log('sellImmediateOrCancel');
-        this.sellImmediateOrCancel(parameters);
+      case (orderTypes.timedTaking):
+        logger.debug('%s timedTaking request received', parameters.actionType);
         break;
-      case (orderTypes.timeBuyTaking):
-        console.log('timeBuyTaking');
-        break;
-      case (orderTypes.timeSellTaking):
-        console.log('timeSellTaking');
-        break;
-      case (orderTypes.timedBuyMaking):
-        console.log('timedBuyMaking');
-        this.timedBuyMaking(parameters);
-        break;
-      case (orderTypes.timedSellMaking):
-        console.log('timedSellMaking');
-        this.timedSellMaking(parameters);
+      case (orderTypes.timedMaking):
+        logger.debug('%s timedMaking request received', parameters.actionType);
+        this.timedRequestMaking(parameters);
         break;
     }
   }
@@ -109,21 +98,21 @@ class OrderExecuter {
     }
   }
 
-  /**
-   * delegates the execution to ImmediateOrCancelRequest with the same parameters
-   * @param {object} params
-   */
-  async buyImmediateOrCancel(params) {
-    this.ImmediateOrCancelRequest('buyImmediateOrCancel', params);
-  }
+  // /**
+  //  * delegates the execution to ImmediateOrCancelRequest with the same parameters
+  //  * @param {object} params
+  //  */
+  // async buyImmediateOrCancel(params) {
+  //   this.ImmediateOrCancelRequest('buyImmediateOrCancel', params);
+  // }
 
-  /**
-   * delegates the execution to ImmediateOrCancelRequest with the same parameters
-   * @param {object} params
-   */
-  async sellImmediateOrCancel(params) {
-    this.ImmediateOrCancelRequest('sellImmediateOrCancel', params);
-  }
+  // /**
+  //  * delegates the execution to ImmediateOrCancelRequest with the same parameters
+  //  * @param {object} params
+  //  */
+  // async sellImmediateOrCancel(params) {
+  //   this.ImmediateOrCancelRequest('sellImmediateOrCancel', params);
+  // }
 
   /**
    * delegates the execution to  timedRequestMaking with the same parameters
@@ -141,11 +130,12 @@ class OrderExecuter {
     this.timedRequestMaking('timedSellMaking', params);
   }
 
-  async ImmediateOrCancelRequest(type, params) {
+  async ImmediateOrCancelRequest(params) {
     const exchange = params.exchange.toLowerCase();
 
     const amount = params.amount;
     const price = params.price;
+    let pair = this.handler.getBalance(exchange, params.currencyPair);
     if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
@@ -153,22 +143,17 @@ class OrderExecuter {
           exchange: exchange,
           errorCode: Status.InputParametersMissing,
           errorMessage: returnMessages.InputParametersMissing,
+          currencyFrom: pair[0],
+          currencyTo: pair[1]
         });
       logger.error('some of the input parameters are missing (amount, price, exchange, requestId, currencyPair)');
       return;
     }
-    let pair = ['',''];
     let retVal = null;
     try {
       pair = this.handler.getBalance(exchange, params.currencyPair);
-      if (type === 'sellImmediateOrCancel') {
-        retVal = await this.handler.sellImmediateOrCancel(exchange,
-          { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair });
-      }
-      else {
-        retVal = await this.handler.buyImmediateOrCancel(exchange,
-          { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair });
-      }
+      retVal = await this.handler.ImmediateOrCancel(exchange,
+        { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair, actionType: params.actionType });
       pair = this.handler.getBalance(exchange, params.currencyPair);
       getEventQueue().sendNotification(Notifications.SentToExchange,
         {
@@ -178,10 +163,10 @@ class OrderExecuter {
           currencyFrom: pair[0],
           currencyTo: pair[1]
         });
-      logger.debug('successfully sent %s request requestId = %s', type, params.requestId);
+      logger.debug('successfully sent %s request requestId = %s', params.actionType, params.requestId);
     }
     catch (err) {
-      logger.error('an error occurred while executing %s err = %o', type, err);
+      logger.error('an error occurred while executing %s err = %o', params.actionType, err);
       getEventQueue().sendNotification(Notifications.Error,
         {
           requestId: params.requestId,
@@ -194,7 +179,7 @@ class OrderExecuter {
     }
   }
 
-  async timedRequestMaking(type, params) {
+  async timedRequestMaking(params) {
     const exchange = params.exchange.toLowerCase();
 
     const amount = params.amount;
@@ -216,14 +201,14 @@ class OrderExecuter {
       return;
     }
     try {
-      if (type === 'timedBuyMaking') {
-        await this.handler.buyLimit(exchange,
-          { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
-      }
-      else {
-        await this.handler.sellLimit(exchange, 
-          { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
-      }
+      // if (params.actionType === 'buy') {
+      await this.handler.Limit(exchange,
+        { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair, actionType: params.actionType });
+      // }
+      // else {
+      //   await this.handler.sellLimit(exchange,
+      //     { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
+      // }
 
       let pair = this.handler.getBalance(exchange, params.currencyPair);
       getEventQueue().sendNotification(Notifications.SentToEventQueue,
@@ -233,10 +218,10 @@ class OrderExecuter {
           currencyFrom: pair.first,
           currencyTo: pair.second
         });
-      logger.debug('successfully sent %s request requestId = %s', type, params.requestId);
+      logger.debug('successfully sent %s request requestId = %s', params.actionType, params.requestId);
     }
     catch (err) {
-      logger.error('an error occurred while executing %s err = %o' , type, err);
+      logger.error('an error occurred while executing %s err = %o' , params.actionType, err);
       getEventQueue().sendNotification(Notifications.Error, {
         requestId: params.requestId,
         error: err, exchange: exchange,

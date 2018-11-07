@@ -1,4 +1,4 @@
-import Bitstamp from 'Bitstamp';
+import { Bitstamp } from 'node-bitstamp';
 import getEventQueue from 'eventQueue';
 import logger from 'logger';
 import { Notifications } from 'smart-trader-common';
@@ -40,6 +40,10 @@ class BitstampHandler {
       throw new Error('could not construct BitstampHandler, input parameters are not valid');
     }
     this.eventQueue = eventQueue;
+    this.buySellFunctions = { 'buy': this.bitstampWrapper.buyLimitOrder.bind(this.bitstampWrapper),
+      'sell' :  this.bitstampWrapper.sellLimitOrder.bind(this.bitstampWrapper) };
+
+
   }
 
   /**
@@ -61,27 +65,27 @@ class BitstampHandler {
        * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC- USD pair will be chosen
        * @param {string} params.requestId - internal request id
        */
-  async buyImmediateOrCancel(params) {
-    logger.debug('sending buy immediate or cancel order request');
+  async ImmediateOrCancel(params) {
+    logger.debug('sending %s immediate or cancel order request', params.actionType);
 
-    return await this.sendOrder('buy',
+    return await this.sendOrder(params.actionType,
       { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId: params.requestId });
   }
 
-  /**
-       * if it is possible to sell the whole amount of coins at the requested price or higher the transaction will happened
-       * if not the request will fail
-       * @param {object} params
-       * @param {string} params.amount - (double as string) how many coins should be bought
-       * @param {string} params.price -  (double as string) the price per single coin
-       * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
-       * @param {string} params.requestId - internal request id
-       */
-  async sellImmediateOrCancel(params) {
-    logger.debug('sending sell immediate or cancel order request');
-    return await this.sendOrder('sell',
-      { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId: params.requestId });
-  }
+  // /**
+  //      * if it is possible to sell the whole amount of coins at the requested price or higher the transaction will happened
+  //      * if not the request will fail
+  //      * @param {object} params
+  //      * @param {string} params.amount - (double as string) how many coins should be bought
+  //      * @param {string} params.price -  (double as string) the price per single coin
+  //      * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
+  //      * @param {string} params.requestId - internal request id
+  //      */
+  // async sellImmediateOrCancel(params) {
+  //   logger.debug('sending sell immediate or cancel order request');
+  //   return await this.sendOrder('sell',
+  //     { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true, requestId: params.requestId });
+  // }
 
   /**
        * a make sell order request being sent
@@ -91,24 +95,9 @@ class BitstampHandler {
        * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
        * @param {string} params.requestId - internal request id
        */
-  async sellLimit(params) {
-    logger.debug('sending sell limit order request');
-    return await this.sendOrder('sell',
-      { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null, requestId: params.requestId });
-  }
-
-
-  /**
-   * a make buy order request being sent
-   * @param {object} params
-   * @param {string} params.amount - (double as string) how many coins should be bought
-   * @param {string} params.price -  (double as string) the price per single coin
-   * @param {string} params.currencyPair - the pair to exchange, if doesn't exist BTC-USD pair will be chosen
-   * @param {string} params.requestId - internal request id
-   */
-  buyLimit(params) {
-    logger.debug('sending buy limit order request');
-    return this.sendOrder('buy',
+  async limit(params) {
+    logger.debug('sending %s limit order request', params.actionType);
+    return await this.sendOrder(params.actionType,
       { amount: params.amount, price: params.price, currencyPair: params.currencyPair, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: null, requestId: params.requestId });
   }
 
@@ -129,13 +118,8 @@ class BitstampHandler {
 
 
     const currencyPair = (!params.currencyPair) ? PairsTo.btcUsd : PairsTo[params.currencyPair];
-
-    if (type === 'sell') {
-      result = await this.bitstampWrapper.sellLimitOrder(params.amount, params.price, currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
-    }
-    else {
-      result = await this.bitstampWrapper.buyLimitOrder(params.amount, params.price, currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
-    }
+    // execution of buy limit or sell limit functions
+    result = await this.buySellFunctions[type](params.amount, params.price, currencyPair, params.limitPrice, params.dailyOrder, params.iocOrder);
 
     if (!result) {
       logger.error('request to bitstamp failed');
@@ -190,9 +174,7 @@ class BitstampHandler {
 
   getBalance(assetPair) {
     console.log(assetPair);
-    let tmp = this.balanceManager.getBalance(assetPair.split('-'));
-    console.log('TMP = %o',tmp);
-    return tmp;
+    return this.balanceManager.getBalance(assetPair.split('-'));
   }
 
 }

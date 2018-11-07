@@ -1,4 +1,4 @@
-import TickerStream from 'TickerStream';
+import { TickerStream } from 'node-bitstamp';
 
 import logger from 'logger';
 import { Status, returnMessages } from 'status';
@@ -191,7 +191,7 @@ class BitstampOrderTracer {
           }
           else if (result.body.status === 'Finished') { // TODO here we should parse the body to get transaction history;
             await this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body) );
-            
+
             let currArr = this.balanceManager.getBalance(this.openOrders[bitstampOrderId].currencyPair.split('-'));
             const balances = this.balanceManager.getBalance(currArr);
             this.eventQueue.sendNotification(Notifications.Finished,

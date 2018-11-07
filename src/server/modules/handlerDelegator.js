@@ -31,39 +31,19 @@ class HandlerDelegator {
      * @param {string} exchange - the name of the exchange as defined in exchange.js file
      * @param {object} params - see specific handler buyImmediateOrCancel parameters
      */
-  buyImmediateOrCancel(exchange, params) {
+  ImmediateOrCancel(exchange, params) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance().buyImmediateOrCancel(params);
+    return getInstance().ImmediateOrCancel(params);
   }
 
   /**
      * delegates to specific exchange handler
      * @param {string} exchange - the name of the exchange as defined in exchange.js file
-     * @param {object} params - see specific handler buyImmediateOrCancel parameters
+     * @param {object} params - see specific handler Limit parameters
      */
-  sellImmediateOrCancel(exchange, params) {
+  Limit(exchange, params) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance().sellImmediateOrCancel(params);
-  }
-
-  /**
-     * delegates to specific exchange handler
-     * @param {string} exchange - the name of the exchange as defined in exchange.js file
-     * @param {object} params - see specific handler buyImmediateOrCancel parameters
-     */
-  sellLimit(exchange, params) {
-    const getInstance = require(Exchanges[exchange]);
-    return getInstance().sellLimit(params);
-  }
-
-  /**
-     * delegates to specific exchange handler
-     * @param {string} exchange - the name of the exchange as defined in exchange.js file
-     * @param {object} params - see specific handler buyImmediateOrCancel parameters
-     */
-  buyLimit(exchange, params) {
-    const getInstance = require(Exchanges[exchange]);
-    return getInstance().buyLimit(params);
+    return getInstance().limit(params);
   }
 
   getBalance(exchange, assetPair) {
