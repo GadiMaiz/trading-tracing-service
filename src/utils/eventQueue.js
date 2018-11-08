@@ -1,6 +1,6 @@
 const kafka = require('kafka-node');
 import logger from 'logger';
-import { Status, returnMessages } from 'status';
+import { Status, returnMessages } from 'smart-trader-common';
 import moment from 'moment';
 import { Module } from 'moduleInfo';
 
