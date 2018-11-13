@@ -1,17 +1,17 @@
 
 const getBalanceRet = { body: { username: 'userX', balance: '100000' } };
 const validRetVal = { body: { status_code: 0, status: 'order sent', id: '2088374564' } };
-const internalTransaction = { bitstampOrderId: '2092218561', amount: '7358.93', price: '0.06286195', type: 'buy', requestId: '1111111' };
+const internalTransaction = { bitstampOrderId: '2092218561', size: '7358.93', price: '0.06286195', type: 'buy', requestId: '1111111' };
 
 export class BitstampWrapperMock {
   balance() {
     return getBalanceRet;
   }
-  buyLimitOrder(amount, price, currency, limitPrice, dailyOrder, iocOrder) {
+  buyLimitOrder(size, price, currency, limitPrice, dailyOrder, iocOrder) {
     return validRetVal;
   }
 
-  sellLimitOrder(amount, price, currency, limitPrice, dailyOrder, iocOrder) {
+  sellLimitOrder(size, price, currency, limitPrice, dailyOrder, iocOrder) {
     return validRetVal;
   }
 

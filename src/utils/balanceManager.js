@@ -11,17 +11,23 @@ class BalanceManager {
     return this.balances;
   }
 
-  getBalance(currencyList) {
-    return currencyList.map((item) => { return (this.balances[item]) ? this.balances[item] : 0; });
+  getBalance(currencyList, userId) {
+    if (!this.balances[userId]) {
+      return {};
+    }
+
+    return currencyList.map((item) => { return (this.balances[userId][item]) ? this.balances[userId][item] : 0; });
   }
 
-  updateAllBalance(balancesList) {
+  async updateAllBalance(balancesList, userId) {
+    if (!this.balances[userId]) {
+      this.balances[userId] = {};
+    }
     Object.keys(balancesList).forEach((key) => {
       try {
         const newKey = this.currencyDictionary[key];
-        
         if (newKey) {
-          this.balances[newKey] = Number(balancesList[key]);
+          this.balances[userId][newKey] = Number(balancesList[key]);
         }
       }
       catch (error) {
@@ -30,14 +36,14 @@ class BalanceManager {
     });
   }
 
-  addToBalance(currency, amount) {
-    this.balances[currency] = this.balances[currency] + Number(amount);
-    this.balances[currency + '_ALL'] = this.balances[currency + '_ALL'] + Number(amount);
+  addToBalance(currency, size, userId) {
+    this.balances[userId][currency] = this.balances[userId][currency] + Number(size);
+    this.balances[userId][currency + '_ALL'] = this.balances[userId][currency + '_ALL'] + Number(size);
   }
 
-  subtractFromBalance(currency, amount) {
-    this.balances[currency] = this.balances[currency] - Number(amount);
-    this.balances[currency + '_ALL'] = this.balances[currency + '_ALL'] - Number(amount);
+  subtractFromBalance(currency, size, userId) {
+    this.balances[userId][currency] = this.balances[userId][currency] - Number(size);
+    this.balances[userId][currency + '_ALL'] = this.balances[userId][currency + '_ALL'] - Number(size);
   }
 
 

@@ -2,12 +2,15 @@ import { orderTypes, Notifications } from 'smart-trader-common';
 import { Status, returnMessages } from 'status';
 import logger from 'logger';
 import Handler from 'handlerDelegator';
-
 const getEventQueue = require('eventQueue');
 
 class OrderExecuter {
 
-  constructor(params) {
+  constructor() {
+
+  }
+
+  init(params) {
     this.handler = new Handler(params);
   }
   /**
@@ -65,6 +68,7 @@ class OrderExecuter {
     const requestId = params.requestId;
 
     try {
+      console.log( { key, secret, clientId, requestId });
       await this.handler.login(exchange, { key, secret, clientId, requestId });
       getEventQueue().sendNotification(Notifications.SuccessfullyLoggedInToExchange, { requestId: requestId, exchange: exchange });
       logger.debug('successfully logged in to exchange- %s requestId- %s', exchange, requestId);
@@ -87,8 +91,9 @@ class OrderExecuter {
       logger.error(err);
     }
     const requestId = params.requestId;
+    const userId = params.userId;
     try {
-      const userData = await this.handler.getUserAccountData(exchange, requestId);
+      const userData = await this.handler.getUserAccountData(exchange, requestId, userId);
       getEventQueue().sendNotification(Notifications.Success, { requestId: requestId, data: userData, exchange: exchange });
       logger.debug('successfully sent get user data request requestId = %s', requestId);
     }
@@ -116,27 +121,28 @@ class OrderExecuter {
 
   /**
    * delegates the execution to  timedRequestMaking with the same parameters
-   * @param {object} params
-   */
-  async timedBuyMaking(params) {
-    this.timedRequestMaking('timedBuyMaking', params);
-  }
+  //  * @param {object} params
+  //  */
+  // async timedBuyMaking(params) {
+  //   this.timedRequestMaking('timedBuyMaking', params);
+  // }
 
   /**
    * delegates the execution to  timedRequestMaking with the same parameters
-   * @param {object} params
-   */
-  async timedSellMaking(params) {
-    this.timedRequestMaking('timedSellMaking', params);
-  }
+  //  * @param {object} params
+  //  */
+  // async timedSellMaking(params) {
+  //   this.timedRequestMaking('timedSellMaking', params);
+  // }
 
   async ImmediateOrCancelRequest(params) {
     const exchange = params.exchange.toLowerCase();
 
-    const amount = params.amount;
+    const size = params.size;
     const price = params.price;
-    let pair = this.handler.getBalance(exchange, params.currencyPair);
-    if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
+    const userId = params.userId;
+    let pair = this.handler.getBalance(exchange, params.currencyPair, userId);
+    if (!size || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
           requestId: params.requestId,
@@ -144,17 +150,21 @@ class OrderExecuter {
           errorCode: Status.InputParametersMissing,
           errorMessage: returnMessages.InputParametersMissing,
           currencyFrom: pair[0],
-          currencyTo: pair[1]
+          currencyTo: pair[1],
         });
-      logger.error('some of the input parameters are missing (amount, price, exchange, requestId, currencyPair)');
+      logger.error('some of the input parameters are missing (size, price, exchange, requestId, currencyPair)');
       return;
     }
     let retVal = null;
     try {
-      pair = this.handler.getBalance(exchange, params.currencyPair);
       retVal = await this.handler.ImmediateOrCancel(exchange,
-        { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair, actionType: params.actionType });
-      pair = this.handler.getBalance(exchange, params.currencyPair);
+        { requestId: params.requestId,
+          size: params.size,
+          price: params.price,
+          currencyPair: params.currencyPair,
+          actionType: params.actionType,
+          userId : userId  });
+      pair = this.handler.getBalance(exchange, params.currencyPair, userId);
       getEventQueue().sendNotification(Notifications.SentToExchange,
         {
           requestId: params.requestId,
@@ -182,12 +192,13 @@ class OrderExecuter {
   async timedRequestMaking(params) {
     const exchange = params.exchange.toLowerCase();
 
-    const amount = params.amount;
+    const size = params.size;
     const price = params.price;
+    const userId = params.userId;
 
-    let pair = this.handler.getBalance(exchange, params.currencyPair);
+    let pair = this.handler.getBalance(exchange, params.currencyPair, userId);
 
-    if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
+    if (!size || !price || !params.exchange || !params.requestId || !params.currencyPair) {
       getEventQueue().sendNotification(Notifications.Error,
         {
           requestId: params.requestId,
@@ -197,20 +208,16 @@ class OrderExecuter {
           currencyFrom: pair.first,
           currencyTo: pair.second
         });
-      logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
+      logger.error('some of the input parameters are missing (size, price, exchange, requestId)');
       return;
     }
     try {
-      // if (params.actionType === 'buy') {
-      await this.handler.Limit(exchange,
-        { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair, actionType: params.actionType });
-      // }
-      // else {
-      //   await this.handler.sellLimit(exchange,
-      //     { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
-      // }
+      await this.handler.Limit(exchange,{ requestId: params.requestId, size: size, price: price,
+        currencyPair: params.currencyPair,
+        actionType: params.actionType,
+        userId : userId  });
 
-      let pair = this.handler.getBalance(exchange, params.currencyPair);
+      let pair = this.handler.getBalance(exchange, params.currencyPair, userId);
       getEventQueue().sendNotification(Notifications.SentToEventQueue,
         {
           requestId: params.requestId,

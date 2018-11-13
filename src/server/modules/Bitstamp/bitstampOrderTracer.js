@@ -7,7 +7,9 @@ import { Notifications } from 'smart-trader-common';
 const getEventQueue = require('eventQueue');
 
 
+import CredentialManager from '../credentialManager';
 
+let credentialManager = new CredentialManager();
 
 class BitstampOrderTracer {
 
@@ -41,7 +43,7 @@ class BitstampOrderTracer {
       }
       this.eventQueue.sendTrade('bitstamp',
         {
-          amount: data.amount_str,
+          size: data.amount_str,
           buy_order_id: data.buy_order_id,
           sell_order_id: data.sell_order_id,
           price: data.price_str,
@@ -57,29 +59,26 @@ class BitstampOrderTracer {
       if (order) {
         if (order.type === 'buy') {
           logger.info('bought %s for price: %s' , data.amount_str, data.price_str );
-          // this.balanceManager.addToBalance(pair[0], data.amount_str);
-          // this.balanceManager.subtractFromBalance(pair[1], data.cost);
         }
         else {
           logger.info('sold %s for price: %s', data.amount_str, data.price_str);
-          // this.balanceManager.subtractFromBalance(pair[0], data.amount_str);
-          // this.balanceManager.addToBalance(pair[1], data.cost);
         }
-        await this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body) );
+        // this.bitstampWrapper.setCredentials(credentialManager.getCredentials('bitstamp', order.userId));
+        // await this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body, order.userId) );
 
-        let currArr = this.openOrders[ order.bitstampOrderId].currencyPair.split('-');
-        const balances = this.balanceManager.getBalance(currArr);
+        let currArr = this.openOrders[order.bitstampOrderId].currencyPair.split('-');
+        const balances = this.balanceManager.getBalance(currArr, order.userId);
 
-        order.transactions.push({ price: data.price, amount: data.amount });
-        order.amount -= parseFloat(data.amount);
+        order.transactions.push({ price: data.price, size: data.amount });
+        order.size -= parseFloat(data.amount);
         this.eventQueue.sendNotification(
           Notifications.Update,
           {
             requestId: order.requestId,
             exchangeOrderId: order.bitstampOrderId,
-            amount: data.amount,
+            size: data.amount,
             price: data.price,
-            amountLeft: order.amount,
+            sizeLeft: order.size,
             exchange: 'bitstamp',
             currencyFrom: balances[currArr[0]],
             currencyTo: balances[currArr[1]]
@@ -87,7 +86,7 @@ class BitstampOrderTracer {
 
         this.eventQueue.sendBalance('bitstamp', this.balanceManager.getAllBalance());
 
-        if (order.amount === 0) {
+        if (order.size === 0) {
           const average = this.calcAveragePrice(order.transactions);
           // here we should send a notification to kafka
           this.eventQueue.sendNotification(Notifications.Finished,
@@ -95,7 +94,7 @@ class BitstampOrderTracer {
               requestId: order.requestId,
               exchangeOrderId: order.bitstampOrderId,
               price: average.price,
-              amount: average.amount,
+              size: average.size,
               exchange: 'bitstamp',
               currencyFrom: balances[0],
               currencyTo: balances[1]
@@ -104,7 +103,7 @@ class BitstampOrderTracer {
           delete this.openOrders[order.bitstampOrderId];
         }
         else {
-          this.openOrders[order.bitstampOrderId].amount = order.amount;
+          this.openOrders[order.bitstampOrderId].size = order.size;
         }
       }
     });
@@ -119,25 +118,28 @@ class BitstampOrderTracer {
   * it checks the status of all orders that were updated recently
   */
   async periodicStatusChecker() {
-    let found = false;
-    let userOrders = null;
     const date = new Date();
     const currentTime = date.getTime();
+    let allOpenOrders = {};
     for (const bitstampOrderId in this.openOrders) {
       if (currentTime - this.openOrders[bitstampOrderId]['updateTime'] >= this.oldLimit) {
-        if (found === false) {
+        if (!allOpenOrders[this.openOrders[bitstampOrderId].userId]) {
           try {
-            found = true;
-            userOrders = await this.bitstampWrapper.openOrdersAll();
+            // this.bitstampWrapper.setCredentials(credentialManager.getCredentials('bitstamp', this.openOrders[bitstampOrderId].userId));
+            console.log("XXXXXXXXXXXXXX1")
+            allOpenOrders[this.openOrders[bitstampOrderId].userId] = await this.bitstampWrapper.openOrdersAll().body;
+            console.log("XXXXXXXXXXXXXX2")
           }
           catch (err) {
             logger.error('Error requesting open orders %s', err);
             return this.openOrders;
           }
         }
+
+        const openExchangeOrder = allOpenOrders[this.openOrders[bitstampOrderId].userId];
         let orderFound = false;
-        for (const itr in userOrders.body) {
-          if (userOrders.body[itr].id === bitstampOrderId) {
+        for (const itr in openExchangeOrder) {
+          if (openExchangeOrder[itr].id === bitstampOrderId) {
             this.openOrders[bitstampOrderId]['updateTime'] = currentTime;
             orderFound = true;
             break;
@@ -146,9 +148,13 @@ class BitstampOrderTracer {
         if (!orderFound) {
           let result = null;
           try {
+            // this.bitstampWrapper.setCredentials(credentialManager.getCredentials('bitstamp', this.openOrders[bitstampOrderId].userId));
+            console.log('XXXXXXXXXXXXXX3');
             result = await this.bitstampWrapper.orderStatus(bitstampOrderId);
+            console.log('XXXXXXXXXXXXXX4');
           }
           catch (err) {
+            console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX - ' + err);
             this.eventQueue.sendNotification(Notifications.Error,
               {
                 error: err,
@@ -159,7 +165,7 @@ class BitstampOrderTracer {
             return this.openOrders;
           }
           let currArr = this.openOrders[bitstampOrderId].currencyPair.split('-');
-          let balances = this.balanceManager.getBalance(currArr);
+          let balances = this.balanceManager.getBalance(currArr, this.openOrders[bitstampOrderId].userId);
           if (!result) {
             logger.error('order status request of order %s has failed', bitstampOrderId);
             this.eventQueue.sendNotification(Notifications.Error, {
@@ -190,10 +196,13 @@ class BitstampOrderTracer {
             delete this.openOrders[bitstampOrderId];
           }
           else if (result.body.status === 'Finished') { // TODO here we should parse the body to get transaction history;
-            await this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body) );
+            // this.bitstampWrapper.setCredentials(credentialManager.getCredentials('bitstamp', this.openOrders[bitstampOrderId].userId));
+            // await this.bitstampWrapper.balance().then(data => this.balanceManager.updateAllBalance(data.body, this.openOrders[bitstampOrderId].userId)) ;
+            // this.eventQueue.sendBalance('bitstamp', this.balanceManager.getAllBalance(this.openOrders[bitstampOrderId].userId));
 
-            let currArr = this.balanceManager.getBalance(this.openOrders[bitstampOrderId].currencyPair.split('-'));
-            const balances = this.balanceManager.getBalance(currArr);
+            let currArr = this.openOrders[bitstampOrderId].currencyPair.split('-');
+            const balances = this.balanceManager.getBalance(currArr,  this.openOrders[bitstampOrderId].userId);
+
             this.eventQueue.sendNotification(Notifications.Finished,
               {
                 exchange: 'bitstamp',
@@ -221,7 +230,7 @@ class BitstampOrderTracer {
      * inserts a transaction into tracing list
      * @param {object} transactionDetails
      * @param {string} transactionDetails.bitstampOrderId - the order id that Bitstamp generated for the current order
-     * @param {string} transactionDetails.amount - (double as string) how many coins should be bought
+     * @param {string} transactionDetails.size - (double as string) how many coins should be bought
      * @param {string} transactionDetails.price - (double as string) the price per single coin
      * @param {string} transactionDetails.type  - buy / sell depends on the request
      * @param {string} transactionDetails.requestId - the internal request id was generated upon user request
@@ -236,13 +245,13 @@ class BitstampOrderTracer {
   }
 
   calcAveragePrice(transactions) {
-    let amount = 0.0;
+    let size = 0.0;
     let price = 0.0;
     transactions.forEach(transaction => {
-      amount += transaction.amount;
-      price += transaction.price * transaction.amount;
+      size += transaction.size;
+      price += transaction.price * transaction.size;
     });
-    return { amount: amount, price: price / amount };
+    return { size: size, price: price / size };
   }
 
 }

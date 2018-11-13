@@ -34,17 +34,17 @@ class BitfinexHandler {
   }
 
   /**
-     * if it is possible to buy the whole amount of coins at the requested price or cheaper the transaction will happened
+     * if it is possible to buy the whole size of coins at the requested price or cheaper the transaction will happened
      * if not the request will fail
      * @param {object} params
-     * @param {string} params.amount - (double as string) how many coins should be sold
+     * @param {string} params.size - (double as string) how many coins should be sold
      * @param {string} params.price -  (double as string) the price per single coin
      * @param {string} params.currency - the pair to exchange, if doesn't exist BTC_USD pair will be chosen
      */
   async buyImmediateOrCancel(params) {
     // const currency = (!params.currency) ? BTC_USD : params.currency;
     // logger.debug('sending buy immediate or cancel order request');
-    // return await this.sendOrder('buy', { amount: params.amount, price: params.price, currency: currency, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true });
+    // return await this.sendOrder('buy', { size: params.size, price: params.price, currency: currency, limitPrice: params.limitPrice, dailyOrder: null, iocOrder: true });
   }
 
 }

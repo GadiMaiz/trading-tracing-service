@@ -1,0 +1,9 @@
+{
+	"ACCOUNT_NAME": {
+		"EXCHANGE_NAME": {
+			"clientId": "XXXXXXXX1",
+			"key": "XXXXXXXX2",
+			"secret": "XXXXXXXXXX3"
+		}
+	}
+}

@@ -13,7 +13,7 @@ import BalanceManager from 'balanceManager';
 
 const getBalanceRet = { body: { username: 'userX', balance: '100000' } };
 const validRetVal = { body: { status_code: 0, status: 'order sent', orderId: '2088374564' } };
-const internalTransaction = { currencyPair: 'BTC-USD', bitstampOrderId: '2092218561', amount: '7358.93', price: '0.06286195', type: 'buy', requestId: '1111111' };
+const internalTransaction = { currencyPair: 'BTC-USD', bitstampOrderId: '2092218561', size: '7358.93', price: '0.06286195', type: 'buy', requestId: '1111111' };
 
 
 
@@ -67,14 +67,14 @@ describe('all tests', () => {
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null, eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currency: null, price: '6823.2', amount: '12', currencyPair : 'BTC-USD' };
+      let params = { currency: null, price: '6823.2', size: '12', currencyPair : 'BTC-USD' };
       let ret = await bitstampHandler.buyImmediateOrCancel(params);
 
       chai.expect(eventQueueMock.notificationType).to.equal(Notifications.AboutToSendToExchange);
       chai.expect(eventQueueMock.message.exchange).to.equal(expectedExchangeName);
       chai.expect(eventQueueMock.message.requestId).to.equal(validRetVal.requestId);
       chai.expect(eventQueueMock.message.price).to.equal(params.price);
-      chai.expect(eventQueueMock.message.amount).to.equal(params.amount);
+      chai.expect(eventQueueMock.message.size).to.equal(params.size);
 
       chai.expect(ret).to.deep.equal(validRetVal.body);
     });
@@ -83,12 +83,12 @@ describe('all tests', () => {
       let bitstampWrapperMock = new BitstampWrapperMock();
       let bitstampOrderTracerMock = new BitstampOrderTracerMock();
       let eventQueueMock = new EventQueueMock();
-      let func = function (amount, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
+      let func = function (size, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
       bitstampWrapperMock.buyLimitOrder = func;
 
       let bitstampHandler = new BitstampHandler(null, eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currencyPair: 'BTC-USD', price: '6823.2', amount: '12' };
+      let params = { currencyPair: 'BTC-USD', price: '6823.2', size: '12' };
 
       return chai.expect(bitstampHandler.buyImmediateOrCancel(params)).to.eventually.be.rejected;
     });
@@ -101,14 +101,14 @@ describe('all tests', () => {
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null, eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { price: '6823.2', amount: '12', currencyPair : 'BTC-USD' };
+      let params = { price: '6823.2', size: '12', currencyPair : 'BTC-USD' };
       let ret = await bitstampHandler.sellImmediateOrCancel(params);
 
       chai.expect(eventQueueMock.notificationType).to.equal(Notifications.AboutToSendToExchange);
       chai.expect(eventQueueMock.message.exchange).to.equal(expectedExchangeName);
       chai.expect(eventQueueMock.message.requestId).to.equal(validRetVal.requestId);
       chai.expect(eventQueueMock.message.price).to.equal(params.price);
-      chai.expect(eventQueueMock.message.amount).to.equal(params.amount);
+      chai.expect(eventQueueMock.message.size).to.equal(params.size);
 
       chai.expect(ret).to.deep.equal(validRetVal.body);
     });
@@ -117,13 +117,13 @@ describe('all tests', () => {
       let bitstampWrapperMock = new BitstampWrapperMock();
       let bitstampOrderTracerMock = new BitstampOrderTracerMock();
 
-      let func = function (amount, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
+      let func = function (size, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
       bitstampWrapperMock.sellLimitOrder = func;
 
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null, eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currencyPair: 'BTC-USD', price: '6823.2', amount: '12' };
+      let params = { currencyPair: 'BTC-USD', price: '6823.2', size: '12' };
 
       return chai.expect(bitstampHandler.sellImmediateOrCancel(params)).to.eventually.be.rejected;
     });
@@ -134,7 +134,7 @@ describe('all tests', () => {
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null,eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currencyPair: 'BTC-USD', price: '6823.2', amount: '12', duration :'10', maxOrderSize : 0.02 };
+      let params = { currencyPair: 'BTC-USD', price: '6823.2', size: '12', duration :'10', maxOrderSize : 0.02 };
       let ret = await bitstampHandler.sellLimit(params);
       return chai.expect(ret).to.deep.equal(validRetVal.body);
     });
@@ -143,13 +143,13 @@ describe('all tests', () => {
       let bitstampWrapperMock = new BitstampWrapperMock();
       let bitstampOrderTracerMock = new BitstampOrderTracerMock();
 
-      let func = function (amount, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
+      let func = function (size, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
       bitstampWrapperMock.sellLimitOrder = func;
 
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null,eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currencyPair: 'BTC-USD', price: '6823.2', amount: '12', duration :'10', maxOrderSize : 0.02 };
+      let params = { currencyPair: 'BTC-USD', price: '6823.2', size: '12', duration :'10', maxOrderSize : 0.02 };
 
       return chai.expect(bitstampHandler.sellLimit(params)).to.eventually.be.rejected;
     });
@@ -160,7 +160,7 @@ describe('all tests', () => {
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null,eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currencyPair: 'BTC-USD', price: '6823.2', amount: '12', duration :'10', maxOrderSize : 0.02 };
+      let params = { currencyPair: 'BTC-USD', price: '6823.2', size: '12', duration :'10', maxOrderSize : 0.02 };
       let ret = await bitstampHandler.sellLimit(params);
       chai.expect(ret.status_code).to.equal(0);
     });
@@ -169,13 +169,13 @@ describe('all tests', () => {
       let bitstampWrapperMock = new BitstampWrapperMock();
       let bitstampOrderTracerMock = new BitstampOrderTracerMock();
 
-      let func = function (amount, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
+      let func = function (size, price, currency, limitPrice, dailyOrder, iocOrder) { return; };
       bitstampWrapperMock.buyLimitOrder = func;
 
       let eventQueueMock = new EventQueueMock();
       let bitstampHandler = new BitstampHandler(null,eventQueueMock, bitstampWrapperMock, bitstampOrderTracerMock);
 
-      let params = { currencyPair: 'BTC-USD', price: '6823.2', amount: '12' };
+      let params = { currencyPair: 'BTC-USD', price: '6823.2', size: '12' };
 
       return chai.expect(bitstampHandler.buyLimit(params)).to.eventually.be.rejected;
     });
@@ -224,10 +224,10 @@ describe('all tests', () => {
       let bitstampOrderTracer = new BitstampOrderTracer(bitstampWrapperMock, { periodToCheck: 0, oldLimit: 0 }, balanceManager,
         eventQueueMock, tickerStreamMock);
 
-      let transactions = [{ amount:1, price: 100 },{ amount:1, price: 150 },{ amount:1, price: 200 }];
+      let transactions = [{ size:1, price: 100 },{ size:1, price: 150 },{ size:1, price: 200 }];
       let average = bitstampOrderTracer.calcAveragePrice(transactions);
 
-      let answer = { amount:3, price: 150 };
+      let answer = { size:3, price: 150 };
       chai.expect(average).to.deep.equal(answer);
     });
 
@@ -235,7 +235,7 @@ describe('all tests', () => {
       let tickerStreamMock = new TickerStreamMock();
       let bitstampWrapperMock = new BitstampWrapperMock();
       bitstampWrapperMock.openOrdersAll = function () {
-        return { body: [{ id: internalTransaction.bitstampOrderId, datetime: '389724983274', type: '1', price: '213', amount: '0.343' }] };
+        return { body: [{ id: internalTransaction.bitstampOrderId, datetime: '389724983274', type: '1', price: '213', size: '0.343' }] };
       };
       let balanceManager = new BalanceManager(currencyDictionary);
       let eventQueueMock = new EventQueueMock();

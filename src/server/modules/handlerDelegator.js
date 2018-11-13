@@ -1,9 +1,23 @@
 import Exchanges from './exchanges.js';
+import CredentialManager from './credentialManager';
+
+let credentialManager = new CredentialManager();
+
 class HandlerDelegator {
 
   // initialize all handlers
   constructor(params) {
     this.params = params;
+    const allCredentials = credentialManager.getAllCredentials();
+    Object.keys(Exchanges).forEach((exchange) =>{
+      const getInstance = require(Exchanges[exchange]);
+      Object.keys(allCredentials).forEach((userId) =>{
+        getInstance(allCredentials[userId][exchange], this.params).getUserAccountData('INIT', userId);
+
+      });
+    //   getInstance(credentials, params);
+    // });
+    });
   }
 
   /**
@@ -14,16 +28,15 @@ class HandlerDelegator {
   async login(exchange, credentials) {
     const getInstance = require(Exchanges[exchange]);
     return await getInstance(credentials, this.params).login(credentials);
-    // return { status: returnMessages.Success };
   }
 
   /**
      * delegates to specific exchange handler
      * @param {string} exchange - the name of the exchange as defined in exchange.js file
      */
-  getUserAccountData(exchange, requestId) {
+  getUserAccountData(exchange, requestId, userId) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance().getUserAccountData(requestId);
+    return getInstance(credentialManager.getCredentials(exchange, userId), this.params).getUserAccountData(requestId);
   }
 
   /**
@@ -33,7 +46,7 @@ class HandlerDelegator {
      */
   ImmediateOrCancel(exchange, params) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance().ImmediateOrCancel(params);
+    return getInstance(credentialManager.getCredentials(exchange, params.userId), this.params).ImmediateOrCancel(params);
   }
 
   /**
@@ -43,12 +56,12 @@ class HandlerDelegator {
      */
   Limit(exchange, params) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance().limit(params);
+    return getInstance(credentialManager.getCredentials(exchange, params.userId), this.params).limit(params);
   }
 
-  getBalance(exchange, assetPair) {
+  getBalance(exchange, assetPair, userId) {
     const getInstance = require(Exchanges[exchange]);
-    return getInstance().getBalance(assetPair);
+    return getInstance(credentialManager.getCredentials(exchange, userId), this.params).getBalance(assetPair, userId);
   }
 }
 

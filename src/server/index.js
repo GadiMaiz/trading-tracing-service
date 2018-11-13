@@ -7,9 +7,12 @@ import OrderExecuter from './modules/orderExecuter';
 
 class Server {
   constructor(params) {
-    let orderExecuter = new OrderExecuter(params);
+    let orderExecuter = new OrderExecuter();
     const  getEventQueue = require('eventQueue');
     getEventQueue(params, (data) => orderExecuter.execute(data));
+    orderExecuter.init(params);
+
+
 
     this.server = express();
     this.server.use(express.json());

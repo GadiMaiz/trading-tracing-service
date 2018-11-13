@@ -1,6 +1,6 @@
 const ExchangeHandlers = {
-  bitstamp : './bitstamp/bitstampHandler',
-  bitfinex : './bitfinex/bitfinexHandler'
+  bitstamp : './bitstamp/bitstampHandler'
+  // ,bitfinex : './bitfinex/bitfinexHandler'
 };
 
 
