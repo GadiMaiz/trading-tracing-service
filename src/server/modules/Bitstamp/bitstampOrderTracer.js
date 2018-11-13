@@ -126,17 +126,14 @@ class BitstampOrderTracer {
         if (!allOpenOrders[this.openOrders[bitstampOrderId].userId]) {
           try {
             // this.bitstampWrapper.setCredentials(credentialManager.getCredentials('bitstamp', this.openOrders[bitstampOrderId].userId));
-            console.log("XXXXXXXXXXXXXX1")
-            allOpenOrders[this.openOrders[bitstampOrderId].userId] = await this.bitstampWrapper.openOrdersAll().body;
-            console.log("XXXXXXXXXXXXXX2")
+            allOpenOrders[this.openOrders[bitstampOrderId].userId] = await this.bitstampWrapper.openOrdersAll();
           }
           catch (err) {
             logger.error('Error requesting open orders %s', err);
             return this.openOrders;
           }
         }
-
-        const openExchangeOrder = allOpenOrders[this.openOrders[bitstampOrderId].userId];
+        const openExchangeOrder = allOpenOrders[this.openOrders[bitstampOrderId].userId].body;
         let orderFound = false;
         for (const itr in openExchangeOrder) {
           if (openExchangeOrder[itr].id === bitstampOrderId) {
@@ -149,12 +146,9 @@ class BitstampOrderTracer {
           let result = null;
           try {
             // this.bitstampWrapper.setCredentials(credentialManager.getCredentials('bitstamp', this.openOrders[bitstampOrderId].userId));
-            console.log('XXXXXXXXXXXXXX3');
             result = await this.bitstampWrapper.orderStatus(bitstampOrderId);
-            console.log('XXXXXXXXXXXXXX4');
           }
           catch (err) {
-            console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX - ' + err);
             this.eventQueue.sendNotification(Notifications.Error,
               {
                 error: err,
