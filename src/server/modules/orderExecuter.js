@@ -121,7 +121,7 @@ class OrderExecuter {
     const price = params.price;
     let pair = {}
     try {
-      let pair = this.handler.getBalance(exchange, params.currencyPair);
+      pair = this.handler.getBalance(exchange, params.currencyPair);
       if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
         getEventQueue().sendNotification(Notifications.Error,
           {
@@ -189,7 +189,7 @@ class OrderExecuter {
       await this.handler.Limit(exchange,
         { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair, actionType: params.actionType });
 
-      let pair = this.handler.getBalance(exchange, params.currencyPair);
+      pair = this.handler.getBalance(exchange, params.currencyPair);
       getEventQueue().sendNotification(Notifications.SentToEventQueue,
         {
           requestId: params.requestId,
