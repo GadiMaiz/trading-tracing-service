@@ -52,6 +52,7 @@
     "kafka-node": "^3.0.1",
     "moment": "^2.22.2",
     "node-bitstamp": "git+https://github.com/bitmain-israel/bitstampWrapper.git",
+    "node-config-module": "git+https://github.com/bitmain-israel/node-config-module.git",
     "pusher-js": "^4.3.1",
     "request": "^2.88.0",
     "smart-trader-common": "git+https://github.com/bitmain-israel/smart-trader-common.git",

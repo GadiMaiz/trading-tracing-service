@@ -137,6 +137,19 @@ class BitstampHandler {
       transactions: [],
       currencyPair: params.currencyPair
     });
+
+    this.eventQueue.sendNotification(Notifications.SentToExchange,
+      {
+        requestId: params.requestId,
+        amount: params.amount,
+        price: params.price,
+        currencyPair: params.currencyPair,
+        exchange: 'bitstamp',
+        currencyFrom: pair[currArr[0]],
+        currencyTo: pair[currArr[1]]
+      });
+
+
     return { status_code: Status.Success, status: returnMessages.OrderSent, orderId: transactionId };
   }
 
@@ -152,7 +165,8 @@ class BitstampHandler {
        */
 
   async login(params) {
-    this.bitstampWrapper.setCredentials(params.key, params.secret, params.clientId);
+    this.bitstampWrapper.setCredentials(params);
+    
     await this.getUserAccountData(params.requestId).then(data => { this.balanceManager.updateAllBalance(data); })
       .then( () => this.eventQueue.sendBalance('bitstamp', this.balanceManager.getAllBalance()));
   }
