@@ -19,6 +19,7 @@ class Server {
 
     // catch 404 and forward to error handler
     this.server.use(function(req, res, next) {
+      console.log("ERRRRRRRRRRRRRRRRRRR")
       next(createError(404));
     });
 

@@ -98,22 +98,6 @@ class OrderExecuter {
     }
   }
 
-  // /**
-  //  * delegates the execution to ImmediateOrCancelRequest with the same parameters
-  //  * @param {object} params
-  //  */
-  // async buyImmediateOrCancel(params) {
-  //   this.ImmediateOrCancelRequest('buyImmediateOrCancel', params);
-  // }
-
-  // /**
-  //  * delegates the execution to ImmediateOrCancelRequest with the same parameters
-  //  * @param {object} params
-  //  */
-  // async sellImmediateOrCancel(params) {
-  //   this.ImmediateOrCancelRequest('sellImmediateOrCancel', params);
-  // }
-
   /**
    * delegates the execution to  timedRequestMaking with the same parameters
    * @param {object} params
@@ -135,22 +119,23 @@ class OrderExecuter {
 
     const amount = params.amount;
     const price = params.price;
-    let pair = this.handler.getBalance(exchange, params.currencyPair);
-    if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
-      getEventQueue().sendNotification(Notifications.Error,
-        {
-          requestId: params.requestId,
-          exchange: exchange,
-          errorCode: Status.InputParametersMissing,
-          errorMessage: returnMessages.InputParametersMissing,
-          currencyFrom: pair[0],
-          currencyTo: pair[1]
-        });
-      logger.error('some of the input parameters are missing (amount, price, exchange, requestId, currencyPair)');
-      return;
-    }
-    let retVal = null;
+    let pair = {}
     try {
+      let pair = this.handler.getBalance(exchange, params.currencyPair);
+      if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
+        getEventQueue().sendNotification(Notifications.Error,
+          {
+            requestId: params.requestId,
+            exchange: exchange,
+            errorCode: Status.InputParametersMissing,
+            errorMessage: returnMessages.InputParametersMissing,
+            currencyFrom: pair[0],
+            currencyTo: pair[1]
+          });
+        logger.error('some of the input parameters are missing (amount, price, exchange, requestId, currencyPair)');
+        return;
+      }
+      let retVal = null;
       pair = this.handler.getBalance(exchange, params.currencyPair);
       retVal = await this.handler.ImmediateOrCancel(exchange,
         { requestId: params.requestId, amount: params.amount, price: params.price, currencyPair: params.currencyPair, actionType: params.actionType });
@@ -184,31 +169,25 @@ class OrderExecuter {
 
     const amount = params.amount;
     const price = params.price;
-
-    let pair = this.handler.getBalance(exchange, params.currencyPair);
-
-    if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
-      getEventQueue().sendNotification(Notifications.Error,
-        {
-          requestId: params.requestId,
-          statusCode: Status.InputParametersMissing,
-          returnMessage: returnMessages.InputParametersMissing,
-          exchange: exchange,
-          currencyFrom: pair.first,
-          currencyTo: pair.second
-        });
-      logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
-      return;
-    }
+    let pair = {};
     try {
-      // if (params.actionType === 'buy') {
+      pair = this.handler.getBalance(exchange, params.currencyPair);
+
+      if (!amount || !price || !params.exchange || !params.requestId || !params.currencyPair) {
+        getEventQueue().sendNotification(Notifications.Error,
+          {
+            requestId: params.requestId,
+            statusCode: Status.InputParametersMissing,
+            returnMessage: returnMessages.InputParametersMissing,
+            exchange: exchange,
+            currencyFrom: pair.first,
+            currencyTo: pair.second
+          });
+        logger.error('some of the input parameters are missing (amount, price, exchange, requestId)');
+        return;
+      }
       await this.handler.Limit(exchange,
         { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair, actionType: params.actionType });
-      // }
-      // else {
-      //   await this.handler.sellLimit(exchange,
-      //     { requestId: params.requestId, amount: amount, price: price, currencyPair: params.currencyPair });
-      // }
 
       let pair = this.handler.getBalance(exchange, params.currencyPair);
       getEventQueue().sendNotification(Notifications.SentToEventQueue,
